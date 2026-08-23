@@ -92,6 +92,8 @@ model_df = wr_season.merge(
     how="inner"
 )
 
+model_df["previous_fantasy_points"] = model_df["fantasy_points_ppr"]
+
 print("\nModel rows by season:")
 print(model_df.groupby("season").size())
 
@@ -103,7 +105,8 @@ features = [
     "games",
     "targets_per_game",
     "receptions_per_game",
-    "yards_per_game"
+    "yards_per_game",
+    "previous_fantasy_points"
 ]
 
 train_df = model_df[model_df["season"] < 2023]
@@ -140,3 +143,4 @@ rf_predictions = rf_model.predict(X_test)
 rf_mae = mean_absolute_error(y_test, rf_predictions)
 
 print("Random Forest MAE:", rf_mae)
+
