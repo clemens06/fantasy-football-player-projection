@@ -73,6 +73,17 @@ wr_season["yards_per_game"] = (
     wr_season["receiving_yards"] / wr_season["games"]
 )
 
+wr_season["catch_rate"] = (
+    wr_season["receptions"] / wr_season["targets"]
+)
+
+wr_season["yards_per_target"] = (
+    wr_season["receiving_yards"] / wr_season["targets"]
+)
+
+wr_season["catch_rate"] = wr_season["catch_rate"].fillna(0)
+wr_season["yards_per_target"] = wr_season["yards_per_target"].fillna(0)
+
 wr_season["next_season"] = wr_season["season"] + 1
 
 future = wr_season[
@@ -97,6 +108,7 @@ model_df["previous_fantasy_points"] = model_df["fantasy_points_ppr"]
 print("\nModel rows by season:")
 print(model_df.groupby("season").size())
 
+
 features = [
     "targets",
     "receptions",
@@ -106,11 +118,20 @@ features = [
     "targets_per_game",
     "receptions_per_game",
     "yards_per_game",
-    "previous_fantasy_points"
+    "previous_fantasy_points",
+    "catch_rate",
+    "yards_per_target"
 ]
+
+
+wr_season["catch_rate"] = wr_season["catch_rate"].fillna(0)
+wr_season["yards_per_target"] = wr_season["yards_per_target"].fillna(0)
 
 train_df = model_df[model_df["season"] < 2023]
 test_df = model_df[model_df["season"] == 2023]
+
+print("Missing values:")
+print(train_df[features].isna().sum())
 
 X_train = train_df[features]
 y_train = train_df["next_fantasy_points"]
@@ -120,6 +141,9 @@ y_test = test_df["next_fantasy_points"]
 
 print("Training:", X_train.shape)
 print("Testing:", X_test.shape)
+
+print("Missing values in training data:")
+print(X_train.isna().sum())
 
 model = LinearRegression()
 model.fit(X_train, y_train)
