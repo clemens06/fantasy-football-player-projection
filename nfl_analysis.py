@@ -154,6 +154,15 @@ mae = mean_absolute_error(y_test, predictions)
 
 print("MAE:", mae)
 
+baseline_predictions = test_df["previous_fantasy_points"]
+
+baseline_mae = mean_absolute_error(
+    y_test,
+    baseline_predictions
+)
+
+print("Baseline MAE:", baseline_mae)
+
 rf_model = RandomForestRegressor(
     n_estimators=300,
     max_depth=8,
