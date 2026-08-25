@@ -603,18 +603,21 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
     )
 
 # ============================================================
-# 11. RANDOM FOREST FEATURE IMPORTANCE
+# 11. XGBoost  FEATURE IMPORTANCE
 # ============================================================
 
 print()
 print("=" * 60)
-print("RANDOM FOREST FEATURE IMPORTANCE")
+print("XGBoost FEATURE IMPORTANCE")
 print("=" * 60)
 
 
-final_model = RandomForestRegressor(
-    n_estimators=300,
-    max_depth=8,
+final_model = XGBRegressor(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    reg_lambda=5.0,
+    subsample=0.8,
     random_state=42
 )
 
@@ -677,7 +680,6 @@ validation_results.append({
 
 print()
 print("=" * 60)
-print("MODEL COMPLETE")
 print("=" * 60)
 
 
@@ -689,9 +691,8 @@ print(
     f"Features: {len(features)}"
 )
 
-print(
-    "Best model/models so far: Ensemble (Linear + XGBoost), and ridge regression."
-)
+print("Best model: Ensemble (Linear Regression + XGBoost)")
+print("Ridge Regression also competitive across seasons")
 
 
 # ============================================================
