@@ -690,7 +690,7 @@ print(
 )
 
 print(
-    "Best model so far: Random Forest"
+    "Best model/models so far: Ensemble (Linear + XGBoost), and ridge regression."
 )
 
 
@@ -745,16 +745,25 @@ print("2025 WR PROJECTIONS")
 print("=" * 60)
 
 
-# Train final model on all historical examples
+# Train final ensemble on all historical examples
 
-final_model = RandomForestRegressor(
-    n_estimators=500,
-    max_depth=8,
+final_linear_model = LinearRegression()
+
+final_linear_model.fit(
+    model_df[features],
+    model_df["next_fantasy_points"]
+)
+
+final_xgb_model = XGBRegressor(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    reg_lambda=5.0,
+    subsample=0.8,
     random_state=42
 )
 
-
-final_model.fit(
+final_xgb_model.fit(
     model_df[features],
     model_df["next_fantasy_points"]
 )
@@ -788,11 +797,17 @@ projection_df["age"] = (
 
 # Generate projections
 
-projection_df[
-    "projected_fantasy_points"
-] = final_model.predict(
+linear_proj = final_linear_model.predict(
     projection_df[features]
 )
+
+xgb_proj = final_xgb_model.predict(
+    projection_df[features]
+)
+
+projection_df[
+    "projected_fantasy_points"
+] = (linear_proj + xgb_proj) / 2
 
 
 # Sort projections
