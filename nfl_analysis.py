@@ -1,10 +1,12 @@
 
 import pandas as pd
 
+from sklearn.linear_model import Ridge
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import RandomForestRegressor
 
+from xgboost import XGBRegressor
 
 # ============================================================
 # 1. LOAD DATA
@@ -486,6 +488,30 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         round(linear_mae, 2)
     )
 
+    # --------------------------------------------------------
+    # Ridge Regression
+    # --------------------------------------------------------
+
+    ridge_model = Ridge(alpha=1.0)
+
+    ridge_model.fit(
+        X_train,
+        y_train
+    )
+
+    ridge_predictions = (
+        ridge_model.predict(X_test)
+    )
+
+    ridge_mae = mean_absolute_error(
+        y_test,
+        ridge_predictions
+    )
+
+    print(
+        "Ridge Regression MAE:",
+        round(ridge_mae, 2)
+    )
 
     # --------------------------------------------------------
     # Baseline
@@ -543,14 +569,38 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         round(rf_mae, 2)
     )
 
+    from xgboost import XGBRegressor
 
-    validation_results.append({
-        "season": prediction_season,
-        "linear_mae": linear_mae,
-        "baseline_mae": baseline_mae,
-        "random_forest_mae": rf_mae
-    })
+    xgb_model = XGBRegressor(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    reg_lambda=5.0,
+    subsample=0.8,
+    random_state=42
+)
+    xgb_model.fit(X_train, y_train)
+    xgb_predictions = xgb_model.predict(X_test)
+    xgb_mae = mean_absolute_error(y_test, xgb_predictions)
+    print("XGBoost MAE:", round(xgb_mae, 2))
 
+    # --------------------------------------------------------
+    # Simple Ensemble (Linear + XGBoost average)
+    # --------------------------------------------------------
+
+    ensemble_predictions = (
+        linear_predictions + xgb_predictions
+    ) / 2
+
+    ensemble_mae = mean_absolute_error(
+        y_test,
+        ensemble_predictions
+    )
+
+    print(
+        "Ensemble MAE:",
+        round(ensemble_mae, 2)
+    )
 
 # ============================================================
 # 11. RANDOM FOREST FEATURE IMPORTANCE
@@ -610,6 +660,16 @@ print(
     .sum()
 )
 
+
+validation_results.append({
+        "season": prediction_season,
+        "linear_mae": linear_mae,
+        "ridge_mae": ridge_mae,
+        "baseline_mae": baseline_mae,
+        "random_forest_mae": rf_mae,
+        "xgboost_mae": xgb_mae,
+        "ensemble_mae": ensemble_mae
+    })
 
 # ============================================================
 # 13. MODEL SUMMARY
