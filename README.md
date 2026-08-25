@@ -39,6 +39,12 @@ Six approaches are evaluated per season: Linear Regression, Ridge Regression, Ra
 ### Development
 This project went through several rounds of iteration before reaching the validated pipeline described above, including an early single-split baseline, tests of individual features in isolation, and discovery and fix of the validation leakage bug I described earlier. One notable early result was that adding previous-season fantasy points as a standalone feature improved Linear Regression MAE by only 0.02 points, while slightly hurting Random Forest. I found this to be an early signal that not every feature earns its place, which led me to more careful feature-by-feature testing used later in the project.
 
+### SQL
+The core pipeline uses pandas in this project, but a select few key aggregations were implemented in SQL against a local SQLite database to validate the pandas logic to get some hands-on SQL experience.
+sql_queries.py loads the same CSVs into an SQLite database and reproduces two operations
+- filtered aggregation: team pass attempts per week, computed with WHERE position = 'QB' and GROUP BY season, week, team. This matches the pandas groupby().sum() for building target_share
+- join: player identity and biographical data merged onto weekly stats using LEFT JOIN ... ON weekly_stats.player_id = players.gsis_id, matching the pandas.merge() used to attach player age.
+
 
 ## Results
 
@@ -89,7 +95,7 @@ Ensemble: 42.71
 
 The Linear+XGBoost ensemble wins outright in 3 of 5 seasons; Ridge Regression wins the other 2. Between the two, one of them is the best or second-best performer in every season tested. Random Forest, the model this project started with, never wins a single season once evaluated head-to-head.
 
-### Honest Finding
+### Analysis
 
 The model does **not** consistently and dramatically beat "just predict last year's points again." In 2021 and 2023, no model beats the baseline by a meaningful margin. As far as I can tell, this is a real, well-documented property of WR fantasy production: year-to-year receiver output is generally volatile due to injuries, target competition, scheme changes, and quarterback play, and that volatility puts a ceiling on how far volume/efficiency stats alone can improve on recency. The model does, however, earn its keep in seasons like 2024, where it beats the baseline by nearly 6 points of MAE.
 
