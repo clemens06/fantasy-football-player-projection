@@ -1,4 +1,3 @@
-
 import pandas as pd
 
 from sklearn.linear_model import Ridge
@@ -82,9 +81,10 @@ print("Dataset shape:", nfl_df.shape)
 
 
 # ============================================================
-# 2. FILTER TO WRs
+# 2. FILTER BY POSITION
 # ============================================================
 
+#create a separate WR dataframe for analysis
 wr_df = nfl_df[
     nfl_df["position"] == "WR"
 ].copy()
@@ -107,8 +107,38 @@ wr_df = wr_df.merge(
     how="left"
 )
 
+
+#create a separate RB dataframe for potential future analysis
+rb_df = nfl_df[
+    nfl_df["position"] == "RB"
+].copy()
+
+print("RB rows:", rb_df.shape)
+
+#add team pass attempts to RB dataframe as well
+rb_df = rb_df.merge(
+    team_attempts,
+    on=["season", "week", "team"],
+    how="left"
+)
+
+
+#create a separate TE dataframe for potential future analysis
+te_df = nfl_df[
+    nfl_df["position"] == "TE"
+].copy()
+
+print("TE rows:", te_df.shape)
+
+#add team pass attempts to TE dataframe as well
+te_df = te_df.merge(
+    team_attempts,
+    on=["season", "week", "team"],
+    how="left"
+)
+
 # ============================================================
-# 3. CREATE SEASON-LEVEL WR DATA
+# 3. CREATE SEASON-LEVEL POSITIONAL DATA
 # ============================================================
 
 # IMPORTANT:
@@ -131,12 +161,55 @@ wr_season = (
         receiving_tds=("receiving_tds", "sum"),
         fantasy_points=("fantasy_points", "sum"),
         fantasy_points_ppr=("fantasy_points_ppr", "sum"),
-        team_pass_attempts=("team_pass_attempts", "sum")
+        team_pass_attempts=("team_pass_attempts", "sum"),
+        carries=("carries", "sum"),
+        rushing_yards=("rushing_yards", "sum"),
+        rushing_tds=("rushing_tds", "sum")
     )
     .reset_index()
 )
 
 print(wr_df[["season", "week", "team", "team_pass_attempts"]].head(20))
+
+
+rb_season = (
+    rb_df
+    .groupby(
+        ["season", "player_id"]
+    )
+    .agg(
+        games=("game_id", "nunique"),
+        carries=("carries", "sum"),
+        rushing_yards=("rushing_yards", "sum"),
+        rushing_tds=("rushing_tds", "sum"),
+        targets=("targets", "sum"),
+        receptions=("receptions", "sum"),
+        receiving_yards=("receiving_yards", "sum"),
+        receiving_tds=("receiving_tds", "sum"),
+        fantasy_points=("fantasy_points", "sum"),
+        fantasy_points_ppr=("fantasy_points_ppr", "sum"),
+        team_pass_attempts=("team_pass_attempts", "sum")
+    )
+    .reset_index()
+)
+
+te_season = (
+    te_df
+    .groupby(
+        ["season", "player_id"]
+    )
+    .agg(
+        games=("game_id", "nunique"),
+        targets=("targets", "sum"),
+        receptions=("receptions", "sum"),
+        receiving_yards=("receiving_yards", "sum"),
+        receiving_tds=("receiving_tds", "sum"),
+        fantasy_points=("fantasy_points", "sum"),
+        fantasy_points_ppr=("fantasy_points_ppr", "sum"),
+        team_pass_attempts=("team_pass_attempts", "sum")
+    )
+    .reset_index()
+)
 
 # ============================================================
 # 4. ADD OFFICIAL PLAYER INFORMATION + AGE
@@ -164,6 +237,19 @@ wr_season = wr_season.merge(
     how="left"
 )
 
+rb_season = rb_season.merge(
+    player_data,
+    left_on="player_id",
+    right_on="gsis_id",
+    how="left"
+)
+
+te_season = te_season.merge(
+    player_data,
+    left_on="player_id",
+    right_on="gsis_id",
+    how="left"
+)
 
 # Remove duplicate ID column
 
@@ -171,6 +257,13 @@ wr_season = wr_season.drop(
     columns=["gsis_id"]
 )
 
+rb_season = rb_season.drop(
+    columns=["gsis_id"]
+)
+
+te_season = te_season.drop(
+    columns=["gsis_id"]
+)
 
 # Rename official name to player_name
 
@@ -180,33 +273,27 @@ wr_season = wr_season.rename(
     }
 )
 
+rb_season = rb_season.rename(
+    columns={
+        "display_name": "player_name"
+    }
+)
+
+te_season = te_season.rename(
+    columns={
+        "display_name": "player_name"
+    }
+)
 
 # Calculate age at end of season
 
-season_end = pd.to_datetime(
-    wr_season["season"].astype(str) + "-12-31"
-)
-
-wr_season["age"] = (
-    season_end
-    - wr_season["birth_date"]
-).dt.days / 365.25
-
-
-print()
-print("Age check:")
+for df in [wr_season, rb_season, te_season]:
+    df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
+    df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
 
 print(
-    wr_season[
-        [
-            "player_name",
-            "season",
-            "birth_date",
-            "age"
-        ]
-    ].head(20)
+    wr_season[["player_name", "season", "birth_date", "age"]].head(10)
 )
-
 
 # ============================================================
 # 5. PLAYER IDENTITY CHECK
