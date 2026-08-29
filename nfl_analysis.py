@@ -568,6 +568,23 @@ wr_season[ratio_columns] = (
     .fillna(0)
 )
 
+rb_season[ratio_columns] = (
+    rb_season[ratio_columns]
+    .replace(
+        [float("inf"), -float("inf")],
+        0
+    )
+    .fillna(0)
+)
+
+te_season[ratio_columns] = (
+    te_season[ratio_columns]
+    .replace(
+        [float("inf"), -float("inf")],
+        0
+    )
+    .fillna(0)
+)
 
 # ============================================================
 # 8. CREATE NEXT-SEASON TARGET
@@ -577,8 +594,15 @@ wr_season["next_season"] = (
     wr_season["season"] + 1
 )
 
+rb_season["next_season"] = (
+    rb_season["season"] + 1
+)
 
-future = wr_season[
+te_season["next_season"] = (
+    te_season["season"] + 1
+)
+
+future_wr = wr_season[
     [
         "season",
         "player_id",
@@ -586,8 +610,7 @@ future = wr_season[
     ]
 ].copy()
 
-
-future = future.rename(
+future_wr = future_wr.rename(
     columns={
         "season": "next_season",
         "fantasy_points_ppr":
@@ -597,7 +620,7 @@ future = future.rename(
 
 
 model_df = wr_season.merge(
-    future,
+    future_wr,
     on=[
         "next_season",
         "player_id"
@@ -605,6 +628,57 @@ model_df = wr_season.merge(
     how="inner"
 )
 
+future_rb = rb_season[
+    [
+        "season",
+        "player_id",
+        "fantasy_points_ppr"
+    ]
+].copy()
+
+future_rb = future_rb.rename(
+    columns={
+        "season": "next_season",
+        "fantasy_points_ppr":
+            "next_fantasy_points"
+    }
+)
+
+
+model_df = rb_season.merge(
+    future_rb,
+    on=[
+        "next_season",
+        "player_id"
+    ],
+    how="inner"
+)
+
+future_te = te_season[
+    [
+        "season",
+        "player_id",
+        "fantasy_points_ppr"
+    ]
+].copy()
+
+future_te = future_te.rename(
+    columns={
+        "season": "next_season",
+        "fantasy_points_ppr":
+            "next_fantasy_points"
+    }
+)
+
+
+model_df = te_season.merge(
+    future_te,
+    on=[
+        "next_season",
+        "player_id"
+    ],
+    how="inner"
+)
 
 # Previous-season fantasy points
 
