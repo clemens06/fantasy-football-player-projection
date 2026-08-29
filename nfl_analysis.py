@@ -790,7 +790,6 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         linear_predictions
     )
 
-
     print(
         "Linear Regression MAE:",
         round(linear_mae, 2)
@@ -877,6 +876,10 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         round(rf_mae, 2)
     )
 
+    # --------------------------------------------------------
+    # XGBoost
+    # --------------------------------------------------------
+
     from xgboost import XGBRegressor
 
     xgb_model = XGBRegressor(
@@ -910,6 +913,23 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         round(ensemble_mae, 2)
     )
 
+    model_maes = {
+        "Linear Regression": linear_mae,
+        "Ridge Regression": ridge_mae,
+        "Baseline": baseline_mae,
+        "Random Forest": rf_mae,
+        "XGBoost": xgb_mae,
+        "Ensemble": ensemble_mae
+    }
+
+    best_model_name, best_model_mae = min(
+        model_maes.items(),
+        key=lambda x: x[1]
+    )
+
+    
+    print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
+    
 # ============================================================
 # 11. XGBoost  FEATURE IMPORTANCE
 # ============================================================
@@ -988,6 +1008,7 @@ validation_results.append({
 
 print()
 print("=" * 60)
+print("MODEL SUMMARY")
 print("=" * 60)
 
 
@@ -999,8 +1020,30 @@ print(
     f"Features: {len(features)}"
 )
 
-print("Best model: Ensemble (Linear Regression + XGBoost)")
-print("Ridge Regression also competitive across seasons")
+summary_df = pd.DataFrame(validation_results)
+
+model_cols = [
+    "linear_mae",
+    "ridge_mae",
+    "baseline_mae",
+    "random_forest_mae",
+    "xgboost_mae",
+    "ensemble_mae"
+]
+
+# average MAE per model across seasons
+avg_mae_by_model = summary_df[model_cols].mean()
+overall_best_model = avg_mae_by_model.idxmin()
+overall_best_mae = avg_mae_by_model.min()
+
+print()
+print("=" * 60)
+print("OVERALL BEST MODEL")
+print("=" * 60)
+print("Best model by average MAE:", overall_best_model)
+print("Average MAE:", round(overall_best_mae, 2))
+
+print(avg_mae_by_model.round(3))
 
 
 # ============================================================
