@@ -1,6 +1,7 @@
 ##  Need to do (in order of priority)
 - Print RB/TE projections 
-clean nfl_analysis.py (too much clunkiness, redundancy esp when creating models)
+- Edit README
+- clean nfl_analysis.py (too much clunkiness, redundancy esp when creating models)
 - Add QBs
 - Get individuals MAEs for each position group
 - Add MORE DATA 

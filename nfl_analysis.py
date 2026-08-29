@@ -929,7 +929,7 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
 
     
     print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
-    
+
 # ============================================================
 # 11. XGBoost  FEATURE IMPORTANCE
 # ============================================================
@@ -1088,7 +1088,7 @@ print(
 
 
 # ============================================================
-# 15. GENERATE 2025 WR PROJECTIONS
+# 15. GENERATE 2025 PROJECTIONS
 # ============================================================
 
 print()
@@ -1123,15 +1123,15 @@ final_xgb_model.fit(
 
 # Get 2024 WRs
 
-projection_df = wr_season[
+wr_projection_df = wr_season[
     wr_season["season"] == 2024
 ].copy()
 
 
-projection_df[
+wr_projection_df[
     "previous_fantasy_points"
 ] = (
-    projection_df[
+    wr_projection_df[
         "fantasy_points_ppr"
     ]
 )
@@ -1139,10 +1139,10 @@ projection_df[
 
 # Fill missing ages
 
-projection_df["age"] = (
-    projection_df["age"]
+wr_projection_df["age"] = (
+    wr_projection_df["age"]
     .fillna(
-        projection_df["age"].median()
+        wr_projection_df["age"].median()
     )
 )
 
@@ -1150,22 +1150,22 @@ projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    projection_df[features]
+    wr_projection_df[features]
 )
 
 xgb_proj = final_xgb_model.predict(
-    projection_df[features]
+    wr_projection_df[features]
 )
 
-projection_df[
+wr_projection_df[
     "projected_fantasy_points"
 ] = (linear_proj + xgb_proj) / 2
 
 
 # Sort projections
 
-projection_df = (
-    projection_df
+wr_projection_df = (
+    wr_projection_df
     .sort_values(
         "projected_fantasy_points",
         ascending=False
@@ -1175,14 +1175,14 @@ projection_df = (
 
 print()
 print(
-    "Top 50 WR Projections for 2025:"
+    "Top 25 WR Projections for 2025:"
 )
 
 print()
 
 
 print(
-    projection_df[
+    wr_projection_df[
         [
             "player_name",
             "games",
@@ -1194,10 +1194,163 @@ print(
             "projected_fantasy_points"
         ]
     ]
-    .head(50)
+    .head(25)
     .to_string(index=False)
 )
 
+# Get 2024 rbs
+
+rb_projection_df = rb_season[
+    rb_season["season"] == 2024
+].copy()
+
+
+rb_projection_df[
+    "previous_fantasy_points"
+] = (
+    rb_projection_df[
+        "fantasy_points_ppr"
+    ]
+)
+
+
+# Fill missing ages
+
+rb_projection_df["age"] = (
+    rb_projection_df["age"]
+    .fillna(
+        rb_projection_df["age"].median()
+    )
+)
+
+
+# Generate projections
+
+linear_proj = final_linear_model.predict(
+    rb_projection_df[features]
+)
+
+xgb_proj = final_xgb_model.predict(
+    rb_projection_df[features]
+)
+
+rb_projection_df[
+    "projected_fantasy_points"
+] = (linear_proj + xgb_proj) / 2
+
+
+# Sort projections
+
+rb_projection_df = (
+    rb_projection_df
+    .sort_values(
+        "projected_fantasy_points",
+        ascending=False
+    )
+)
+
+
+print()
+print(
+    "Top 25 RB Projections for 2025:"
+)
+
+print()
+
+
+print(
+    rb_projection_df[
+        [
+            "player_name",
+            "games",
+            "targets",
+            "receptions",
+            "receiving_yards",
+            "fantasy_points_ppr",
+            "age",
+            "projected_fantasy_points"
+        ]
+    ]
+    .head(25)
+    .to_string(index=False)
+)
+
+# Get 2024 TEs
+
+te_projection_df = te_season[
+    te_season["season"] == 2024
+].copy()
+
+
+te_projection_df[
+    "previous_fantasy_points"
+] = (
+    te_projection_df[
+        "fantasy_points_ppr"
+    ]
+)
+
+
+# Fill missing ages
+
+te_projection_df["age"] = (
+    te_projection_df["age"]
+    .fillna(
+        te_projection_df["age"].median()
+    )
+)
+
+
+# Generate projections
+
+linear_proj = final_linear_model.predict(
+    te_projection_df[features]
+)
+
+xgb_proj = final_xgb_model.predict(
+    te_projection_df[features]
+)
+
+te_projection_df[
+    "projected_fantasy_points"
+] = (linear_proj + xgb_proj) / 2
+
+
+# Sort projections
+
+te_projection_df = (
+    te_projection_df
+    .sort_values(
+        "projected_fantasy_points",
+        ascending=False
+    )
+)
+
+
+print()
+print(
+    "Top 25 TE Projections for 2025:"
+)
+
+print()
+
+
+print(
+    te_projection_df[
+        [
+            "player_name",
+            "games",
+            "targets",
+            "receptions",
+            "receiving_yards",
+            "fantasy_points_ppr",
+            "age",
+            "projected_fantasy_points"
+        ]
+    ]
+    .head(25)
+    .to_string(index=False)
+)
 
 # ============================================================
 # 16. GAME COUNT CHECK
@@ -1228,6 +1381,51 @@ print(
     ].value_counts()
 )
 
+print(
+    rb_df
+    .groupby(
+        [
+            "season",
+            "player_id",
+            "player_name"
+        ]
+    )["game_id"]
+    .nunique()
+    .sort_values(
+        ascending=False
+    )
+    .head(20)
+)
+
+
+print(
+    rb_df[
+        "season_type"
+    ].value_counts()
+)
+
+print(
+    te_df
+    .groupby(
+        [
+            "season",
+            "player_id",
+            "player_name"
+        ]
+    )["game_id"]
+    .nunique()
+    .sort_values(
+        ascending=False
+    )
+    .head(20)
+)
+
+
+print(
+    te_df[
+        "season_type"
+    ].value_counts()
+)
 
 # ============================================================
 # 17. 2024 MODEL ERROR ANALYSIS
@@ -1438,6 +1636,54 @@ print("=" * 60)
 print(
     wr_season[
         wr_season["player_id"]
+        .isin(problem_ids)
+    ][
+        [
+            "player_id",
+            "player_name",
+            "season",
+            "games",
+            "targets",
+            "receptions",
+            "receiving_yards",
+            "fantasy_points_ppr"
+        ]
+    ]
+    .sort_values(
+        [
+            "player_id",
+            "season"
+        ]
+    )
+)
+
+print(
+    rb_season[
+        rb_season["player_id"]
+        .isin(problem_ids)
+    ][
+        [
+            "player_id",
+            "player_name",
+            "season",
+            "games",
+            "targets",
+            "receptions",
+            "receiving_yards",
+            "fantasy_points_ppr"
+        ]
+    ]
+    .sort_values(
+        [
+            "player_id",
+            "season"
+        ]
+    )
+)
+
+print(
+    te_season[
+        te_season["player_id"]
         .isin(problem_ids)
     ][
         [
