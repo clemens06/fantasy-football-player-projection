@@ -619,7 +619,7 @@ future_wr = future_wr.rename(
 )
 
 
-model_df = wr_season.merge(
+wr_model_df = wr_season.merge(
     future_wr,
     on=[
         "next_season",
@@ -645,7 +645,7 @@ future_rb = future_rb.rename(
 )
 
 
-model_df = rb_season.merge(
+rb_model_df = rb_season.merge(
     future_rb,
     on=[
         "next_season",
@@ -671,7 +671,7 @@ future_te = future_te.rename(
 )
 
 
-model_df = te_season.merge(
+te_model_df = te_season.merge(
     future_te,
     on=[
         "next_season",
@@ -682,8 +682,16 @@ model_df = te_season.merge(
 
 # Previous-season fantasy points
 
-model_df["previous_fantasy_points"] = (
-    model_df["fantasy_points_ppr"]
+wr_model_df["previous_fantasy_points"] = (
+    wr_model_df["fantasy_points_ppr"]
+)
+
+rb_model_df["previous_fantasy_points"] = (
+    rb_model_df["fantasy_points_ppr"]
+)
+
+te_model_df["previous_fantasy_points"] = (
+    te_model_df["fantasy_points_ppr"]
 )
 
 
@@ -691,17 +699,28 @@ print()
 print("Model rows by season:")
 
 print(
-    model_df
+    wr_model_df
     .groupby("season")
     .size()
 )
 
+print(
+    rb_model_df
+    .groupby("season")
+    .size()
+)
+
+print(
+    te_model_df
+    .groupby("season")
+    .size()
+)
 
 # ============================================================
 # 9. DEFINE FEATURES
 # ============================================================
 
-features = [
+wr_features = [
     "targets",
     "receptions",
     "receiving_yards",
@@ -725,6 +744,53 @@ features = [
     "carries_per_game"
 ]
 
+rb_features = [
+    "targets",
+    "receptions",
+    "receiving_yards",
+    "receiving_tds",
+    "games",
+    "targets_per_game",
+    "receptions_per_game",
+    "receiving_yards_per_game",
+    "previous_fantasy_points",
+    "catch_rate",
+    "yards_per_target",
+    "yards_per_reception",
+    "fantasy_points_per_game",
+    "age",
+    "target_share",
+    "rushing_yards",
+    "rushing_tds",
+    "carries",
+    "rushing_yards_per_game",
+    "rushing_tds_per_game",
+    "carries_per_game"
+]
+
+te_features = [
+    "targets",
+    "receptions",
+    "receiving_yards",
+    "receiving_tds",
+    "games",
+    "targets_per_game",
+    "receptions_per_game",
+    "receiving_yards_per_game",
+    "previous_fantasy_points",
+    "catch_rate",
+    "yards_per_target",
+    "yards_per_reception",
+    "fantasy_points_per_game",
+    "age",
+    "target_share",
+    "rushing_yards",
+    "rushing_tds",
+    "carries",
+    "rushing_yards_per_game",
+    "rushing_tds_per_game",
+    "carries_per_game"
+]
 
 # ============================================================
 # 10. CROSS-SEASON MODEL VALIDATION
@@ -738,21 +804,48 @@ print("=" * 60)
 
 validation_results = []
 
+wr_model_df = wr_season.merge(
+    future_wr,
+    on=["next_season", "player_id"],
+    how="inner"
+)
+wr_model_df["previous_fantasy_points"] = wr_model_df["fantasy_points_ppr"]
+
+rb_model_df = rb_season.merge(
+    future_rb,
+    on=["next_season", "player_id"],
+    how="inner"
+)
+rb_model_df["previous_fantasy_points"] = rb_model_df["fantasy_points_ppr"]
+
+te_model_df = te_season.merge(
+    future_te,
+    on=["next_season", "player_id"],
+    how="inner"
+)
+te_model_df["previous_fantasy_points"] = te_model_df["fantasy_points_ppr"]
 
 for prediction_season in [2020, 2021, 2022, 2023, 2024]:
-    train_df = model_df[model_df["next_season"] < prediction_season]
-    test_df = model_df[model_df["next_season"] == prediction_season]
 
-    X_train = train_df[features]
-    y_train = train_df[
-        "next_fantasy_points"
-    ]
+    pos_features = {
+        "WR": wr_features,
+        "RB": rb_features,
+        "TE": te_features
+    }
 
-    X_test = test_df[features]
-    y_test = test_df[
-        "next_fantasy_points"
-    ]
+    for pos_name, pos_df in [
+    ("WR", wr_model_df),
+    ("RB", rb_model_df),
+    ("TE", te_model_df)
+]:
+        
+        train_df = pos_df[pos_df["next_season"] < 2024]
+        test_df = pos_df[pos_df["next_season"] == 2024]
 
+    X_train = train_df[pos_features[pos_name]]
+    y_train = train_df["next_fantasy_points"]
+    X_test = test_df[pos_features[pos_name]]
+    y_test = test_df["next_fantasy_points"]
 
     print()
     print(
@@ -940,7 +1033,7 @@ print("XGBoost FEATURE IMPORTANCE")
 print("=" * 60)
 
 
-final_model = XGBRegressor(
+wr_final_model = XGBRegressor(
     n_estimators=100,
     max_depth=3,
     learning_rate=0.05,
@@ -949,30 +1042,93 @@ final_model = XGBRegressor(
     random_state=42
 )
 
+rb_final_model = XGBRegressor(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    reg_lambda=5.0,
+    subsample=0.8,
+    random_state=42
+)
 
-final_model.fit(
-    model_df[features],
-    model_df["next_fantasy_points"]
+te_final_model = XGBRegressor(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    reg_lambda=5.0,
+    subsample=0.8,
+    random_state=42
+)
+
+wr_final_model.fit(
+    wr_model_df[pos_features["WR"]],
+    wr_model_df["next_fantasy_points"]
+)
+
+rb_final_model.fit(
+    rb_model_df[pos_features["RB"]],
+    rb_model_df["next_fantasy_points"]
+)
+
+te_final_model.fit(
+    te_model_df[pos_features["TE"]],
+    te_model_df["next_fantasy_points"]
 )
 
 
-feature_importance = pd.DataFrame({
-    "feature": features,
+wr_feature_importance = pd.DataFrame({
+    "feature": pos_features[pos_name],
     "importance":
-        final_model.feature_importances_
+        wr_final_model.feature_importances_
 })
 
 
-feature_importance = (
-    feature_importance
+rb_feature_importance = pd.DataFrame({
+    "feature": pos_features[pos_name],
+    "importance":
+        rb_final_model.feature_importances_
+})
+
+te_feature_importance = pd.DataFrame({
+    "feature": pos_features[pos_name],
+    "importance":
+        te_final_model.feature_importances_
+})
+
+
+wr_feature_importance = (
+    wr_feature_importance
     .sort_values(
         "importance",
         ascending=False
     )
 )
 
+rb_feature_importance = (
+    rb_feature_importance
+    .sort_values(
+        "importance",
+        ascending=False
+    )
+)
 
-print(feature_importance)
+te_feature_importance = (
+    te_feature_importance
+    .sort_values(
+        "importance",
+        ascending=False
+    )
+)
+
+print()
+print("WR Feature Importance:")
+print(wr_feature_importance)
+print()
+print("RB Feature Importance:")
+print(rb_feature_importance)
+print()
+print("TE Feature Importance:")
+print(te_feature_importance)
 
 
 # ============================================================
@@ -986,11 +1142,22 @@ print("=" * 60)
 
 
 print(
-    model_df[features]
+    wr_model_df[pos_features[pos_name]]
     .isna()
     .sum()
 )
 
+print(
+    rb_model_df[pos_features[pos_name]]
+    .isna()
+    .sum()
+)
+
+print(
+    te_model_df[pos_features[pos_name]]
+    .isna()
+    .sum()
+)
 
 validation_results.append({
         "season": prediction_season,
@@ -1013,11 +1180,19 @@ print("=" * 60)
 
 
 print(
-    f"Training rows: {len(model_df)}"
+    f"Training rows: {len(wr_model_df)}"
 )
 
 print(
-    f"Features: {len(features)}"
+    f"Training rows: {len(rb_model_df)}"
+)
+
+print(
+    f"Training rows: {len(te_model_df)}"
+)
+
+print(
+    f"Features: {len(pos_features[pos_name])}"
 )
 
 summary_df = pd.DataFrame(validation_results)
@@ -1102,8 +1277,8 @@ print("=" * 60)
 final_linear_model = LinearRegression()
 
 final_linear_model.fit(
-    model_df[features],
-    model_df["next_fantasy_points"]
+    wr_model_df[pos_features["WR"]],
+    wr_model_df["next_fantasy_points"]
 )
 
 final_xgb_model = XGBRegressor(
@@ -1116,8 +1291,8 @@ final_xgb_model = XGBRegressor(
 )
 
 final_xgb_model.fit(
-    model_df[features],
-    model_df["next_fantasy_points"]
+    wr_model_df[pos_features["WR"]],
+    wr_model_df["next_fantasy_points"]
 )
 
 
@@ -1150,11 +1325,11 @@ wr_projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    wr_projection_df[features]
+    wr_projection_df[pos_features["WR"]]
 )
 
 xgb_proj = final_xgb_model.predict(
-    wr_projection_df[features]
+    wr_projection_df[pos_features["WR"]]
 )
 
 wr_projection_df[
@@ -1227,11 +1402,11 @@ rb_projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    rb_projection_df[features]
+    rb_projection_df[pos_features["RB"]]
 )
 
 xgb_proj = final_xgb_model.predict(
-    rb_projection_df[features]
+    rb_projection_df[pos_features["RB"]]
 )
 
 rb_projection_df[
@@ -1304,11 +1479,11 @@ te_projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    te_projection_df[features]
+    te_projection_df[pos_features["TE"]]
 )
 
 xgb_proj = final_xgb_model.predict(
-    te_projection_df[features]
+    te_projection_df[pos_features["TE"]]
 )
 
 te_projection_df[
@@ -1433,49 +1608,117 @@ print(
 
 # Recreate 2024 test set explicitly
 
-train_df = model_df[
-    model_df["next_season"] < 2024
+wr_train_df = wr_model_df[
+    wr_model_df["next_season"] < 2024
 ]
 
-test_df = model_df[
-    model_df["next_season"] == 2024
+wr_test_df = wr_model_df[
+    wr_model_df["next_season"] == 2024
 ]
 
 
-X_train = train_df[features]
+wr_X_train = wr_train_df[pos_features["WR"]]
 
-y_train = train_df[
+wr_y_train = wr_train_df[
     "next_fantasy_points"
 ]
 
-X_test = test_df[features]
+wr_X_test = wr_test_df[pos_features["WR"]]
 
-y_test = test_df[
+wr_y_test = wr_test_df[
     "next_fantasy_points"
 ]
 
+rb_train_df = rb_model_df[
+    rb_model_df["next_season"] < 2024
+]
+
+rb_test_df = rb_model_df[
+    rb_model_df["next_season"] == 2024
+]
+
+
+rb_X_train = rb_train_df[pos_features["RB"]]
+
+rb_y_train = rb_train_df[
+    "next_fantasy_points"
+]
+
+rb_X_test = rb_test_df[pos_features["RB"]]
+
+rb_y_test = rb_test_df[
+    "next_fantasy_points"
+]
+
+te_train_df = te_model_df[
+    te_model_df["next_season"] < 2024
+]
+
+te_test_df = te_model_df[
+    te_model_df["next_season"] == 2024
+]
+
+
+te_X_train = te_train_df[pos_features["TE"]]
+
+te_y_train = te_train_df[
+    "next_fantasy_points"
+]
+
+te_X_test = te_test_df[pos_features["TE"]]
+
+te_y_test = te_test_df[
+    "next_fantasy_points"
+]
 
 # Train 2024 evaluation model
 
-rf_model = RandomForestRegressor(
+wr_rf_model = RandomForestRegressor(
     n_estimators=300,
     max_depth=8,
     random_state=42
 )
 
-
-rf_model.fit(
-    X_train,
-    y_train
+rb_rf_model = RandomForestRegressor(
+    n_estimators=300, 
+    max_depth=8,
+    random_state=42
 )
 
-
-predictions = rf_model.predict(
-    X_test
+te_rf_model = RandomForestRegressor(
+    n_estimators=300,
+    max_depth=8,
+    random_state=42
 )
 
+wr_rf_model.fit(
+    wr_X_train,
+    wr_y_train
+)
 
-comparison = test_df[
+rb_rf_model.fit(
+    rb_X_train,
+    rb_y_train
+)
+
+te_rf_model.fit(
+    te_X_train,
+    te_y_train
+)
+
+wr_predictions = wr_rf_model.predict(
+    wr_X_test
+)
+
+rb_predictions = rb_rf_model.predict(
+    rb_X_test
+)
+
+te_predictions = te_rf_model.predict(
+    te_X_test
+)
+
+wr_comparison = wr_test_df[
     [
         "player_id",
         "player_name",
@@ -1483,20 +1726,54 @@ comparison = test_df[
     ]
 ].copy()
 
+rb_comparison = rb_test_df[
+    [
+        "player_id",
+        "player_name",
+        "next_fantasy_points"
+    ]
+].copy()
 
-comparison["predicted"] = predictions
+te_comparison = te_test_df[
+    [
+        "player_id",
+        "player_name",
+        "next_fantasy_points"
+    ]
+].copy()
 
+wr_comparison["predicted"] = wr_predictions
 
-comparison["error"] = (
-    comparison["predicted"]
-    - comparison["next_fantasy_points"]
+rb_comparison["predicted"] = rb_predictions
+
+te_comparison["predicted"] = te_predictions
+
+wr_comparison["error"] = (
+    wr_comparison["predicted"]
+    - wr_comparison["next_fantasy_points"]
 )
 
-
-comparison["absolute_error"] = (
-    comparison["error"].abs()
+rb_comparison["error"] = (
+    rb_comparison["predicted"]
+    - rb_comparison["next_fantasy_points"]
 )
 
+te_comparison["error"] = (
+    te_comparison["predicted"]
+    - te_comparison["next_fantasy_points"]
+)
+
+wr_comparison["absolute_error"] = (
+    wr_comparison["error"].abs()
+)
+
+rb_comparison["absolute_error"] = (
+    rb_comparison["error"].abs()
+)
+
+te_comparison["absolute_error"] = (
+    te_comparison["error"].abs()
+)
 
 # ============================================================
 # 18. BIGGEST OVERPREDICTIONS
@@ -1507,9 +1784,10 @@ print("=" * 60)
 print("BIGGEST OVERPREDICTIONS")
 print("=" * 60)
 
-
+print()
+print("WR")
 print(
-    comparison
+    wr_comparison
     .sort_values(
         "error",
         ascending=False
@@ -1524,6 +1802,41 @@ print(
     .head(20)
 )
 
+print()
+print("RB")
+print(
+    rb_comparison
+    .sort_values(
+        "error",
+        ascending=False
+    )[
+        [
+            "player_name",
+            "next_fantasy_points",
+            "predicted",
+            "error"
+        ]
+    ] 
+    .head(20)
+)
+
+print()
+print("TE")
+print(
+    te_comparison
+    .sort_values(
+        "error",
+        ascending=False
+    )[
+        [
+            "player_name",
+            "next_fantasy_points",
+            "predicted",
+            "error"
+        ]
+    ]
+    .head(20)
+)
 
 # ============================================================
 # 19. BIGGEST UNDERPREDICTIONS
@@ -1534,9 +1847,10 @@ print("=" * 60)
 print("BIGGEST UNDERPREDICTIONS")
 print("=" * 60)
 
-
+print()
+print("WR")
 print(
-    comparison
+    wr_comparison
     .sort_values(
         "error"
     )[
@@ -1550,6 +1864,39 @@ print(
     .head(20)
 )
 
+print()
+print("RB")
+print(
+    rb_comparison
+    .sort_values(
+        "error"
+    )[
+        [
+            "player_name",
+            "next_fantasy_points",
+            "predicted",
+            "error"
+        ]
+    ]
+    .head(20)
+)
+
+print()
+print("TE")
+print(
+    te_comparison
+    .sort_values(
+        "error"
+    )[
+        [
+            "player_name",
+            "next_fantasy_points",
+            "predicted",
+            "error"
+        ]
+    ]
+    .head(20)
+)
 
 # ============================================================
 # 20. LARGEST ABSOLUTE ERRORS
@@ -1560,9 +1907,10 @@ print("=" * 60)
 print("LARGEST ABSOLUTE ERRORS")
 print("=" * 60)
 
-
+print()
+print("WR")
 print(
-    comparison
+    wr_comparison
     .sort_values(
         "absolute_error",
         ascending=False
@@ -1577,132 +1925,167 @@ print(
     .head(20)
 )
 
-
-# ============================================================
-# 21. DUPLICATE CHECK ON 2024 TEST SET
-# ============================================================
+print()
+print("RB")
+print(
+    rb_comparison
+    .sort_values(
+        "absolute_error",
+        ascending=False
+    )[
+        [
+            "player_name",
+            "next_fantasy_points",
+            "predicted",
+            "error"
+        ]
+    ]
+    .head(20)
+)
 
 print()
-print("=" * 60)
-print("2024 TEST SET DUPLICATE CHECK")
-print("=" * 60)
-
-
+print("TE")
 print(
-    "Rows:",
-    len(comparison)
-)
-
-print(
-    "Unique player IDs:",
-    comparison["player_id"].nunique()
-)
-
-
-duplicates = comparison[
-    comparison["player_id"].duplicated(
-        keep=False
-    )
-]
-
-
-print(
-    "Duplicate player IDs:"
-)
-
-print(
-    duplicates
-    .sort_values("player_id")
-)
-
-
-# ============================================================
-# 22. PROBLEM PLAYER CHECK
-# ============================================================
-
-problem_ids = [
-    "00-0035216",
-    "00-0037240",
-    "00-0038977"
-]
-
-
-print()
-print("=" * 60)
-print("PROBLEM PLAYER CHECK")
-print("=" * 60)
-
-
-print(
-    wr_season[
-        wr_season["player_id"]
-        .isin(problem_ids)
-    ][
+    te_comparison
+    .sort_values(
+        "absolute_error",
+        ascending=False
+    )[
         [
-            "player_id",
             "player_name",
-            "season",
-            "games",
-            "targets",
-            "receptions",
-            "receiving_yards",
-            "fantasy_points_ppr"
+            "next_fantasy_points",
+            "predicted",
+            "error"
         ]
     ]
-    .sort_values(
-        [
-            "player_id",
-            "season"
-        ]
-    )
+    .head(20)
 )
 
-print(
-    rb_season[
-        rb_season["player_id"]
-        .isin(problem_ids)
-    ][
-        [
-            "player_id",
-            "player_name",
-            "season",
-            "games",
-            "targets",
-            "receptions",
-            "receiving_yards",
-            "fantasy_points_ppr"
-        ]
-    ]
-    .sort_values(
-        [
-            "player_id",
-            "season"
-        ]
-    )
-)
+# # ============================================================
+# # 21. DUPLICATE CHECK ON 2024 TEST SET
+# # ============================================================
 
-print(
-    te_season[
-        te_season["player_id"]
-        .isin(problem_ids)
-    ][
-        [
-            "player_id",
-            "player_name",
-            "season",
-            "games",
-            "targets",
-            "receptions",
-            "receiving_yards",
-            "fantasy_points_ppr"
-        ]
-    ]
-    .sort_values(
-        [
-            "player_id",
-            "season"
-        ]
-    )
-)
+# print()
+# print("=" * 60)
+# print("2024 TEST SET DUPLICATE CHECK")
+# print("=" * 60)
 
-print(nfl_df.columns)
+
+# print(
+#     "Rows:",
+#     len(wr_comparison)
+# )
+
+# print(
+#     "Unique player IDs:",
+#     wr_comparison["player_id"].nunique()
+# )
+
+
+# duplicates = wr_comparison[
+#     wr_comparison["player_id"].duplicated(
+#         keep=False
+#     )
+# ]
+
+
+# print(
+#     "Duplicate player IDs:"
+# )
+
+# print(
+#     duplicates
+#     .sort_values("player_id")
+# )
+
+
+# # ============================================================
+# # 22. PROBLEM PLAYER CHECK
+# # ============================================================
+
+# problem_ids = [
+#     "00-0035216",
+#     "00-0037240",
+#     "00-0038977"
+# ]
+
+
+# print()
+# print("=" * 60)
+# print("PROBLEM PLAYER CHECK")
+# print("=" * 60)
+
+
+# print(
+#     wr_season[
+#         wr_season["player_id"]
+#         .isin(problem_ids)
+#     ][
+#         [
+#             "player_id",
+#             "player_name",
+#             "season",
+#             "games",
+#             "targets",
+#             "receptions",
+#             "receiving_yards",
+#             "fantasy_points_ppr"
+#         ]
+#     ]
+#     .sort_values(
+#         [
+#             "player_id",
+#             "season"
+#         ]
+#     )
+# )
+
+# print(
+#     rb_season[
+#         rb_season["player_id"]
+#         .isin(problem_ids)
+#     ][
+#         [
+#             "player_id",
+#             "player_name",
+#             "season",
+#             "games",
+#             "targets",
+#             "receptions",
+#             "receiving_yards",
+#             "fantasy_points_ppr"
+#         ]
+#     ]
+#     .sort_values(
+#         [
+#             "player_id",
+#             "season"
+#         ]
+#     )
+# )
+
+# print(
+#     te_season[
+#         te_season["player_id"]
+#         .isin(problem_ids)
+#     ][
+#         [
+#             "player_id",
+#             "player_name",
+#             "season",
+#             "games",
+#             "targets",
+#             "receptions",
+#             "receiving_yards",
+#             "fantasy_points_ppr"
+#         ]
+#     ]
+#     .sort_values(
+#         [
+#             "player_id",
+#             "season"
+#         ]
+#     )
+# )
+
+# print(nfl_df.columns)

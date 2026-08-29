@@ -126,6 +126,3 @@ previous fantasy points and receiving yards still dominate, together accounting 
 
 data/raw/           weekly stats CSVs (2018–2024) and player bio data
 nfl_analysis.py         main pipeline: load > aggregate > feature engineer > validate > project > error-analyze
-
-## Most absurd projections
-- 2025 Tony Jones - 529.3 points
