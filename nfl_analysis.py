@@ -200,6 +200,9 @@ te_season = (
     )
     .agg(
         games=("game_id", "nunique"),
+        carries=("carries", "sum"),
+        rushing_yards=("rushing_yards", "sum"),
+        rushing_tds=("rushing_tds", "sum"),
         targets=("targets", "sum"),
         receptions=("receptions", "sum"),
         receiving_yards=("receiving_yards", "sum"),
@@ -373,7 +376,7 @@ wr_season["receptions_per_game"] = (
     / wr_season["games"]
 )
 
-wr_season["yards_per_game"] = (
+wr_season["receiving_yards_per_game"] = (
     wr_season["receiving_yards"]
     / wr_season["games"]
 )
@@ -406,16 +409,154 @@ wr_season["target_share"] = wr_season["target_share"].replace(
     [float("inf"), -float("inf")], 0
 ).fillna(0)
 
+wr_season["rushing_yards_per_game"] = (
+    wr_season["rushing_yards"]
+    / wr_season["games"]
+)
+
+wr_season["rushing_tds_per_game"] = (
+    wr_season["rushing_tds"]
+    / wr_season["games"]
+)
+
+wr_season["carries_per_game"] = (
+    wr_season["carries"]
+    / wr_season["games"]
+)
+
+
+#rb_season features
+
+rb_season["carries_per_game"] = (
+    rb_season["carries"]
+    / rb_season["games"]
+)
+
+rb_season["rushing_yards_per_game"] = (
+    rb_season["rushing_yards"]
+    / rb_season["games"]
+)
+
+rb_season["rushing_tds_per_game"] = (
+    rb_season["rushing_tds"]
+    / rb_season["games"]
+)
+
+rb_season["targets_per_game"] = (
+    rb_season["targets"]
+    / rb_season["games"]
+)
+
+rb_season["receptions_per_game"] = (
+    rb_season["receptions"]
+    / rb_season["games"]
+)
+
+rb_season["receiving_yards_per_game"] = (
+    rb_season["receiving_yards"]
+    / rb_season["games"]
+)
+
+rb_season["catch_rate"] = (
+    rb_season["receptions"]
+    / rb_season["targets"]
+)
+
+rb_season["yards_per_target"] = (
+    rb_season["receiving_yards"]
+    / rb_season["targets"]
+)
+
+rb_season["yards_per_reception"] = (
+    rb_season["receiving_yards"]
+    / rb_season["receptions"]
+)
+
+rb_season["fantasy_points_per_game"] = (
+    rb_season["fantasy_points_ppr"]
+    / rb_season["games"]
+)
+
+rb_season["target_share"] = (
+    rb_season["targets"] / rb_season["team_pass_attempts"]
+)
+
+rb_season["target_share"] = rb_season["target_share"].replace(
+    [float("inf"), -float("inf")], 0
+).fillna(0)
+
+#te_season features
+te_season["targets_per_game"] = (
+    te_season["targets"]
+    / te_season["games"]
+)
+
+te_season["receptions_per_game"] = (
+    te_season["receptions"]
+    / te_season["games"]
+)
+
+te_season["receiving_yards_per_game"] = (
+    te_season["receiving_yards"]
+    / te_season["games"]
+)
+
+te_season["catch_rate"] = (
+    te_season["receptions"]
+    / te_season["targets"]
+)
+
+te_season["yards_per_target"] = (
+    te_season["receiving_yards"]
+    / te_season["targets"]
+)
+
+te_season["yards_per_reception"] = (
+    te_season["receiving_yards"]
+    / te_season["receptions"]
+)
+
+te_season["fantasy_points_per_game"] = (
+    te_season["fantasy_points_ppr"]
+    / te_season["games"]
+)
+
+te_season["target_share"] = (
+    te_season["targets"] / te_season["team_pass_attempts"]
+)
+
+te_season["target_share"] = te_season["target_share"].replace(
+    [float("inf"), -float("inf")], 0
+).fillna(0)
+
+te_season["rushing_yards_per_game"] = (
+    te_season["rushing_yards"]
+    / te_season["games"]
+)
+
+te_season["rushing_tds_per_game"] = (
+    te_season["rushing_tds"]
+    / te_season["games"]
+)
+
+te_season["carries_per_game"] = (
+    te_season["carries"]
+    / te_season["games"]
+)
+
 # Replace undefined ratios with 0
 
 ratio_columns = [
     "targets_per_game",
     "receptions_per_game",
-    "yards_per_game",
+    "receiving_yards_per_game",
     "catch_rate",
     "yards_per_target",
     "yards_per_reception",
-    "fantasy_points_per_game"
+    "fantasy_points_per_game",
+    "rushing_yards_per_game",
+    "rushing_tds_per_game",
+    "carries_per_game"
 ]
 
 wr_season[ratio_columns] = (
@@ -494,14 +635,20 @@ features = [
     "games",
     "targets_per_game",
     "receptions_per_game",
-    "yards_per_game",
+    "receiving_yards_per_game",
     "previous_fantasy_points",
     "catch_rate",
     "yards_per_target",
     "yards_per_reception",
     "fantasy_points_per_game",
     "age",
-    "target_share"
+    "target_share",
+    "rushing_yards",
+    "rushing_tds",
+    "carries",
+    "rushing_yards_per_game",
+    "rushing_tds_per_game",
+    "carries_per_game"
 ]
 
 
