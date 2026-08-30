@@ -11,89 +11,30 @@ from xgboost import XGBRegressor
 # 1. LOAD DATA
 # ============================================================
 
-df_2018 = pd.read_csv(
-    "data/raw/stats_player_week_2018.csv",
-    low_memory=False
-)
-
-df_2019 = pd.read_csv(
-    "data/raw/stats_player_week_2019.csv",
-    low_memory=False
-)
-
-df_2020 = pd.read_csv(
-    "data/raw/stats_player_week_2020.csv",
-    low_memory=False
-)
-
-df_2021 = pd.read_csv(
-    "data/raw/stats_player_week_2021.csv",
-    low_memory=False
-)
-
-df_2022 = pd.read_csv(
-    "data/raw/stats_player_week_2022.csv",
-    low_memory=False
-)
-
-df_2023 = pd.read_csv(
-    "data/raw/stats_player_week_2023.csv",
-    low_memory=False
-)
-
-df_2024 = pd.read_csv(
-    "data/raw/stats_player_week_2024.csv",
-    low_memory=False
-)
-
-players_df = pd.read_csv(
-    "data/raw/players.csv",
-    low_memory=False
-)
-
-# print("\nPlayer data:")
-# print(players_df.columns)
-# print(players_df.head())
-
+df_2018 = pd.read_csv("data/raw/stats_player_week_2018.csv",low_memory=False)
+df_2019 = pd.read_csv("data/raw/stats_player_week_2019.csv",low_memory=False)
+df_2020 = pd.read_csv("data/raw/stats_player_week_2020.csv",low_memory=False)
+df_2021 = pd.read_csv("data/raw/stats_player_week_2021.csv",low_memory=False)
+df_2022 = pd.read_csv("data/raw/stats_player_week_2022.csv",low_memory=False)
+df_2023 = pd.read_csv("data/raw/stats_player_week_2023.csv",low_memory=False)
+df_2024 = pd.read_csv("data/raw/stats_player_week_2024.csv",low_memory=False)
+players_df = pd.read_csv("data/raw/players.csv",low_memory=False)
 
 # Combine NFL data
-
-nfl_df = pd.concat(
-    [df_2018, df_2019, df_2020, df_2021, df_2022, df_2023, df_2024],
-    ignore_index=True
-)
-
-# print(
-#     [
-#         col for col in nfl_df.columns
-#         if "team" in col.lower()
-#     ]
-# )
-
+nfl_df = pd.concat([df_2018, df_2019, df_2020, df_2021, df_2022, df_2023, df_2024],ignore_index=True)
 
 # Only regular season
-
-nfl_df = nfl_df[
-    nfl_df["season_type"] == "REG"
-].copy()
-
-# print("Dataset shape:", nfl_df.shape)
-
+nfl_df = nfl_df[nfl_df["season_type"] == "REG"].copy()
 
 # ============================================================
 # 2. FILTER BY POSITION
 # ============================================================
 
-#create a separate WR dataframe for analysis
-wr_df = nfl_df[
-    nfl_df["position"] == "WR"
-].copy()
-
-# print("WR rows:", wr_df.shape)
+#create a separate WR dataframe
+wr_df = nfl_df[nfl_df["position"] == "WR"].copy()
 
 # Sum team pass attempts per week, from QB rows in the full weekly dataset
-team_attempts = (
-    nfl_df[nfl_df["position"] == "QB"]
+team_attempts = (nfl_df[nfl_df["position"] == "QB"]
     .groupby(["season", "week", "team"])["attempts"]
     .sum()
     .reset_index()
@@ -101,58 +42,29 @@ team_attempts = (
 )
 
 # Merge onto the weekly WR data using season, week, and team
-wr_df = wr_df.merge(
-    team_attempts,
-    on=["season", "week", "team"],
-    how="left"
-)
+wr_df = wr_df.merge(team_attempts,on=["season", "week", "team"],how="left")
 
-
-#create a separate RB dataframe for potential future analysis
-rb_df = nfl_df[
-    nfl_df["position"] == "RB"
-].copy()
-
-# print("RB rows:", rb_df.shape)
+#create a separate RB dataframe
+rb_df = nfl_df[nfl_df["position"] == "RB"].copy()
 
 #add team pass attempts to RB dataframe as well
-rb_df = rb_df.merge(
-    team_attempts,
-    on=["season", "week", "team"],
-    how="left"
-)
+rb_df = rb_df.merge(team_attempts,on=["season", "week", "team"],how="left")
 
-
-#create a separate TE dataframe for potential future analysis
-te_df = nfl_df[
-    nfl_df["position"] == "TE"
-].copy()
-
-# print("TE rows:", te_df.shape)
+#create a separate TE dataframe
+te_df = nfl_df[nfl_df["position"] == "TE"].copy()
 
 #add team pass attempts to TE dataframe as well
-te_df = te_df.merge(
-    team_attempts,
-    on=["season", "week", "team"],
-    how="left"
-)
+te_df = te_df.merge(team_attempts,on=["season", "week", "team"],how="left")
 
 # ============================================================
 # 3. CREATE SEASON-LEVEL POSITIONAL DATA
 # ============================================================
 
 # IMPORTANT:
-# Group by player_id, NOT player_name.
-#
-# player_id is the actual identity of the player.
-# This prevents cases like Nathaniel "Tank" Dell appearing
-# as N.Dell and T.Dell from becoming separate players.
+# Group by player_id, NOT player_name. player_id is the actual identity of the player.
+# This prevents cases like Nathaniel "Tank" Dell appearing as N.Dell and T.Dell from becoming separate players.
 
-wr_season = (
-    wr_df
-    .groupby(
-        ["season", "player_id"]
-    )
+wr_season = (wr_df.groupby(["season", "player_id"])
     .agg(
         games=("game_id", "nunique"),
         targets=("targets", "sum"),
@@ -169,11 +81,7 @@ wr_season = (
     .reset_index()
 )
 
-rb_season = (
-    rb_df
-    .groupby(
-        ["season", "player_id"]
-    )
+rb_season = (rb_df.groupby(["season", "player_id"])
     .agg(
         games=("game_id", "nunique"),
         carries=("carries", "sum"),
@@ -190,11 +98,7 @@ rb_season = (
     .reset_index()
 )
 
-te_season = (
-    te_df
-    .groupby(
-        ["season", "player_id"]
-    )
+te_season = (te_df.groupby(["season", "player_id"])
     .agg(
         games=("game_id", "nunique"),
         carries=("carries", "sum"),
@@ -215,336 +119,76 @@ te_season = (
 # 4. ADD OFFICIAL PLAYER INFORMATION + AGE
 # ============================================================
 
-player_data = players_df[
-    [
-        "gsis_id",
-        "display_name",
-        "birth_date"
-    ]
-].copy()
-
-player_data["birth_date"] = pd.to_datetime(
-    player_data["birth_date"],
-    errors="coerce"
-)
+player_data = players_df[["gsis_id","display_name","birth_date"]].copy()
+player_data["birth_date"] = pd.to_datetime(player_data["birth_date"],errors="coerce")
 
 # Merge player information
-
-wr_season = wr_season.merge(
-    player_data,
-    left_on="player_id",
-    right_on="gsis_id",
-    how="left"
-)
-
-rb_season = rb_season.merge(
-    player_data,
-    left_on="player_id",
-    right_on="gsis_id",
-    how="left"
-)
-
-te_season = te_season.merge(
-    player_data,
-    left_on="player_id",
-    right_on="gsis_id",
-    how="left"
-)
+wr_season = wr_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
+rb_season = rb_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
+te_season = te_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
 
 # Remove duplicate ID column
-
-wr_season = wr_season.drop(
-    columns=["gsis_id"]
-)
-
-rb_season = rb_season.drop(
-    columns=["gsis_id"]
-)
-
-te_season = te_season.drop(
-    columns=["gsis_id"]
-)
+wr_season = wr_season.drop(columns=["gsis_id"])
+rb_season = rb_season.drop(columns=["gsis_id"])
+te_season = te_season.drop(columns=["gsis_id"])
 
 # Rename official name to player_name
-
-wr_season = wr_season.rename(
-    columns={
-        "display_name": "player_name"
-    }
-)
-
-rb_season = rb_season.rename(
-    columns={
-        "display_name": "player_name"
-    }
-)
-
-te_season = te_season.rename(
-    columns={
-        "display_name": "player_name"
-    }
-)
+wr_season = wr_season.rename(columns={"display_name": "player_name"})
+rb_season = rb_season.rename(columns={"display_name": "player_name"})
+te_season = te_season.rename(columns={"display_name": "player_name"})
 
 # Calculate age at end of season
-
 for df in [wr_season, rb_season, te_season]:
     df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
     df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
 
-# print(
-#     wr_season[["player_name", "season", "birth_date", "age"]].head(10)
-#     rb_season[["player_name", "season", "birth_date", "age"]].head(10)
-#     te_season[["player_name", "season", "birth_date", "age"]].head(10)
-# )
-
-# # ============================================================
-# # 5. PLAYER IDENTITY CHECK
-# # ============================================================
-
-# print()
-# print("=" * 60)
-# print("PLAYER IDENTITY CHECK")
-# print("=" * 60)
-
-
-# duplicate_player_seasons = (
-#     wr_season
-#     .duplicated(
-#         subset=[
-#             "season",
-#             "player_id"
-#         ],
-#         keep=False
-#     )
-# )
-
-
-# print(
-#     "Duplicate player-seasons:",
-#     duplicate_player_seasons.sum()
-# )
-
-
-# print(
-#     wr_season[
-#         duplicate_player_seasons
-#     ]
-#     .sort_values(
-#         ["player_id", "season"]
-#     )
-# )
-
-
-# # ============================================================
-# # 6. TANK DELL CHECK
-# # ============================================================
-
-# print()
-# print("TANK DELL CHECK:")
-
-# print(
-#     wr_season[
-#         wr_season["player_id"] == "00-0038977"
-#     ][
-#         [
-#             "player_id",
-#             "player_name",
-#             "season",
-#             "games",
-#             "targets",
-#             "receptions",
-#             "receiving_yards",
-#             "fantasy_points_ppr"
-#         ]
-#     ]
-#     .sort_values("season")
-# )
-
-
 # ============================================================
-# 7. CREATE FEATURES
+# 5. CREATE FEATURES
 # ============================================================
 
-wr_season["targets_per_game"] = (
-    wr_season["targets"]
-    / wr_season["games"]
-)
-
-wr_season["receptions_per_game"] = (
-    wr_season["receptions"]
-    / wr_season["games"]
-)
-
-wr_season["receiving_yards_per_game"] = (
-    wr_season["receiving_yards"]
-    / wr_season["games"]
-)
-
-wr_season["catch_rate"] = (
-    wr_season["receptions"]
-    / wr_season["targets"]
-)
-
-wr_season["yards_per_target"] = (
-    wr_season["receiving_yards"]
-    / wr_season["targets"]
-)
-
-wr_season["yards_per_reception"] = (
-    wr_season["receiving_yards"]
-    / wr_season["receptions"]
-)
-
-wr_season["fantasy_points_per_game"] = (
-    wr_season["fantasy_points_ppr"]
-    / wr_season["games"]
-)
-
-wr_season["target_share"] = (
-    wr_season["targets"] / wr_season["team_pass_attempts"]
-)
-
-wr_season["target_share"] = wr_season["target_share"].replace(
-    [float("inf"), -float("inf")], 0
-).fillna(0)
-
-wr_season["rushing_yards_per_game"] = (
-    wr_season["rushing_yards"]
-    / wr_season["games"]
-)
-
-wr_season["rushing_tds_per_game"] = (
-    wr_season["rushing_tds"]
-    / wr_season["games"]
-)
-
-wr_season["carries_per_game"] = (
-    wr_season["carries"]
-    / wr_season["games"]
-)
-
+#wr_season features
+wr_season["targets_per_game"] = (wr_season["targets"]/ wr_season["games"])
+wr_season["receptions_per_game"] = (wr_season["receptions"]/ wr_season["games"])
+wr_season["receiving_yards_per_game"] = (wr_season["receiving_yards"]/ wr_season["games"])
+wr_season["catch_rate"] = (wr_season["receptions"]/ wr_season["targets"])
+wr_season["yards_per_target"] = (wr_season["receiving_yards"]/ wr_season["targets"])
+wr_season["yards_per_reception"] = (wr_season["receiving_yards"]/ wr_season["receptions"])
+wr_season["fantasy_points_per_game"] = (wr_season["fantasy_points_ppr"]/ wr_season["games"])
+wr_season["target_share"] = (wr_season["targets"] / wr_season["team_pass_attempts"])
+wr_season["target_share"] = wr_season["target_share"].replace([float("inf"), -float("inf")], 0).fillna(0)
+wr_season["rushing_yards_per_game"] = (wr_season["rushing_yards"]/ wr_season["games"])
+wr_season["rushing_tds_per_game"] = (wr_season["rushing_tds"]/ wr_season["games"])
+wr_season["carries_per_game"] = (wr_season["carries"]/ wr_season["games"])
 
 #rb_season features
-
-rb_season["carries_per_game"] = (
-    rb_season["carries"]
-    / rb_season["games"]
-)
-
-rb_season["rushing_yards_per_game"] = (
-    rb_season["rushing_yards"]
-    / rb_season["games"]
-)
-
-rb_season["rushing_tds_per_game"] = (
-    rb_season["rushing_tds"]
-    / rb_season["games"]
-)
-
-rb_season["targets_per_game"] = (
-    rb_season["targets"]
-    / rb_season["games"]
-)
-
-rb_season["receptions_per_game"] = (
-    rb_season["receptions"]
-    / rb_season["games"]
-)
-
-rb_season["receiving_yards_per_game"] = (
-    rb_season["receiving_yards"]
-    / rb_season["games"]
-)
-
-rb_season["catch_rate"] = (
-    rb_season["receptions"]
-    / rb_season["targets"]
-)
-
-rb_season["yards_per_target"] = (
-    rb_season["receiving_yards"]
-    / rb_season["targets"]
-)
-
-rb_season["yards_per_reception"] = (
-    rb_season["receiving_yards"]
-    / rb_season["receptions"]
-)
-
-rb_season["fantasy_points_per_game"] = (
-    rb_season["fantasy_points_ppr"]
-    / rb_season["games"]
-)
-
-rb_season["target_share"] = (
-    rb_season["targets"] / rb_season["team_pass_attempts"]
-)
-
-rb_season["target_share"] = rb_season["target_share"].replace(
-    [float("inf"), -float("inf")], 0
-).fillna(0)
+rb_season["carries_per_game"] = (rb_season["carries"]/ rb_season["games"])
+rb_season["rushing_yards_per_game"] = (rb_season["rushing_yards"]/ rb_season["games"])
+rb_season["rushing_tds_per_game"] = (rb_season["rushing_tds"]/ rb_season["games"])
+rb_season["targets_per_game"] = (rb_season["targets"]/ rb_season["games"])
+rb_season["receptions_per_game"] = (rb_season["receptions"]/ rb_season["games"])
+rb_season["receiving_yards_per_game"] = (rb_season["receiving_yards"]/ rb_season["games"])
+rb_season["catch_rate"] = (rb_season["receptions"]/ rb_season["targets"])
+rb_season["yards_per_target"] = (rb_season["receiving_yards"]/ rb_season["targets"])
+rb_season["yards_per_reception"] = (rb_season["receiving_yards"]/ rb_season["receptions"])
+rb_season["fantasy_points_per_game"] = (rb_season["fantasy_points_ppr"]/ rb_season["games"])
+rb_season["target_share"] = (rb_season["targets"] / rb_season["team_pass_attempts"])
+rb_season["target_share"] = rb_season["target_share"].replace([float("inf"), -float("inf")], 0).fillna(0)
 
 #te_season features
-te_season["targets_per_game"] = (
-    te_season["targets"]
-    / te_season["games"]
-)
-
-te_season["receptions_per_game"] = (
-    te_season["receptions"]
-    / te_season["games"]
-)
-
-te_season["receiving_yards_per_game"] = (
-    te_season["receiving_yards"]
-    / te_season["games"]
-)
-
-te_season["catch_rate"] = (
-    te_season["receptions"]
-    / te_season["targets"]
-)
-
-te_season["yards_per_target"] = (
-    te_season["receiving_yards"]
-    / te_season["targets"]
-)
-
-te_season["yards_per_reception"] = (
-    te_season["receiving_yards"]
-    / te_season["receptions"]
-)
-
-te_season["fantasy_points_per_game"] = (
-    te_season["fantasy_points_ppr"]
-    / te_season["games"]
-)
-
-te_season["target_share"] = (
-    te_season["targets"] / te_season["team_pass_attempts"]
-)
-
-te_season["target_share"] = te_season["target_share"].replace(
-    [float("inf"), -float("inf")], 0
-).fillna(0)
-
-te_season["rushing_yards_per_game"] = (
-    te_season["rushing_yards"]
-    / te_season["games"]
-)
-
-te_season["rushing_tds_per_game"] = (
-    te_season["rushing_tds"]
-    / te_season["games"]
-)
-
-te_season["carries_per_game"] = (
-    te_season["carries"]
-    / te_season["games"]
-)
+te_season["targets_per_game"] = (te_season["targets"]/ te_season["games"])
+te_season["receptions_per_game"] = (te_season["receptions"]/ te_season["games"])
+te_season["receiving_yards_per_game"] = (te_season["receiving_yards"]/ te_season["games"])
+te_season["catch_rate"] = (te_season["receptions"]/ te_season["targets"])
+te_season["yards_per_target"] = (te_season["receiving_yards"]/ te_season["targets"])
+te_season["yards_per_reception"] = (te_season["receiving_yards"]/ te_season["receptions"])
+te_season["fantasy_points_per_game"] = (te_season["fantasy_points_ppr"]/ te_season["games"])
+te_season["target_share"] = (te_season["targets"] / te_season["team_pass_attempts"])
+te_season["target_share"] = te_season["target_share"].replace([float("inf"), -float("inf")], 0).fillna(0)
+te_season["rushing_yards_per_game"] = (te_season["rushing_yards"]/ te_season["games"])
+te_season["rushing_tds_per_game"] = (te_season["rushing_tds"]/ te_season["games"])
+te_season["carries_per_game"] = (te_season["carries"]/ te_season["games"])
 
 # Replace undefined ratios with 0
-
 ratio_columns = [
     "targets_per_game",
     "receptions_per_game",
@@ -558,35 +202,12 @@ ratio_columns = [
     "carries_per_game"
 ]
 
-wr_season[ratio_columns] = (
-    wr_season[ratio_columns]
-    .replace(
-        [float("inf"), -float("inf")],
-        0
-    )
-    .fillna(0)
-)
-
-rb_season[ratio_columns] = (
-    rb_season[ratio_columns]
-    .replace(
-        [float("inf"), -float("inf")],
-        0
-    )
-    .fillna(0)
-)
-
-te_season[ratio_columns] = (
-    te_season[ratio_columns]
-    .replace(
-        [float("inf"), -float("inf")],
-        0
-    )
-    .fillna(0)
-)
+wr_season[ratio_columns] = (wr_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
+rb_season[ratio_columns] = (rb_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
+te_season[ratio_columns] = (te_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
 
 # ============================================================
-# 8. CREATE NEXT-SEASON TARGET
+# 6. CREATE NEXT-SEASON TARGET
 # ============================================================
 
 wr_season["next_season"] = (
@@ -716,7 +337,7 @@ te_model_df["previous_fantasy_points"] = (
 # )
 
 # ============================================================
-# 9. DEFINE FEATURES
+# 7. DEFINE FEATURES
 # ============================================================
 
 wr_features = [
@@ -792,7 +413,7 @@ te_features = [
 ]
 
 # ============================================================
-# 10. CROSS-SEASON MODEL VALIDATION
+# 8. CROSS-SEASON MODEL VALIDATION
 # ============================================================
 
 print()
@@ -907,7 +528,7 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
             })
 
 # ============================================================
-# 11. XGBoost  FEATURE IMPORTANCE
+# 9. XGBoost  FEATURE IMPORTANCE
 # ============================================================
 
 print()
@@ -944,23 +565,7 @@ for pos_name, model in position_models.items():
     print(importance_df.head(20))
 
 # ============================================================
-# 12. MISSING VALUES
-# ============================================================
-
-print()
-print("=" * 60)
-print("MISSING VALUES")
-print("=" * 60)
-
-for pos_name, pos_df in position_dfs.items():
-    missing = pos_df[pos_feature_map[pos_name]].isna().sum()
-    nonzero = missing[missing > 0]
-    if not nonzero.empty:
-        print(f"{pos_name}")
-        print(nonzero)
-
-# ============================================================
-# 13. MODEL SUMMARY
+# 10. MODEL SUMMARY
 # ============================================================
 
 print()
@@ -1027,7 +632,7 @@ print("Average MAE:", round(overall_best_mae, 2))
 print(avg_mae_by_model.round(3))
 
 # ============================================================
-# 14. GENERATE 2025 PROJECTIONS
+# 11. GENERATE 2025 PROJECTIONS
 # ============================================================
 
 print()
@@ -1141,7 +746,7 @@ print(
 )
 
 # ============================================================
-# 15. 2024 MODEL ERROR ANALYSIS
+# 12. 2024 MODEL ERROR ANALYSIS
 # ============================================================
 
 # Recreate 2024 test set explicitly
@@ -1314,7 +919,7 @@ te_comparison["absolute_error"] = (
 )
 
 # ============================================================
-# 16. BIGGEST OVERPREDICTIONS
+# 13. BIGGEST OVERPREDICTIONS
 # ============================================================
 
 print()
@@ -1377,7 +982,7 @@ print(
 )
 
 # ============================================================
-# 17. BIGGEST UNDERPREDICTIONS
+# 14. BIGGEST UNDERPREDICTIONS
 # ============================================================
 
 print()
@@ -1437,7 +1042,7 @@ print(
 )
 
 # ============================================================
-# 18. LARGEST ABSOLUTE ERRORS
+# 15. LARGEST ABSOLUTE ERRORS
 # ============================================================
 
 print()
