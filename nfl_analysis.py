@@ -239,6 +239,12 @@ wr_model_df["previous_fantasy_points"] = (wr_model_df["fantasy_points_ppr"])
 rb_model_df["previous_fantasy_points"] = (rb_model_df["fantasy_points_ppr"])
 te_model_df["previous_fantasy_points"] = (te_model_df["fantasy_points_ppr"])
 
+for df in [wr_model_df, rb_model_df, te_model_df]:
+    df.sort_values(["player_id", "season"], inplace=True)
+    df["prev_2yr_avg"] = (df.groupby("player_id")["fantasy_points_ppr"].transform(lambda s: s.shift(1).rolling(2, min_periods=1).mean()))
+    df["fantasy_points_change"] = (df["fantasy_points_ppr"] - df["prev_2yr_avg"])
+    df["breakout_flag"] = (df["fantasy_points_change"] > 5).astype(int)
+
 # ============================================================
 # 7. DEFINE FEATURES
 # ============================================================
@@ -268,7 +274,10 @@ wr_features = [
     "carries",
     "rushing_yards_per_game",
     "rushing_tds_per_game",
-    "carries_per_game"
+    "carries_per_game",
+    "prev_2yr_avg",
+    "fantasy_points_change",
+    "breakout_flag"
 ]
 
 rb_features = [
@@ -296,7 +305,10 @@ rb_features = [
     "carries",
     "rushing_yards_per_game",
     "rushing_tds_per_game",
-    "carries_per_game"
+    "carries_per_game",
+    "prev_2yr_avg",
+    "fantasy_points_change",
+    "breakout_flag"
 ]
 
 te_features = [
@@ -324,7 +336,10 @@ te_features = [
     "carries",
     "rushing_yards_per_game",
     "rushing_tds_per_game",
-    "carries_per_game"
+    "carries_per_game",
+    "prev_2yr_avg",
+    "fantasy_points_change",
+    "breakout_flag"
 ]
 
 # ============================================================
@@ -459,7 +474,7 @@ for pos_name, model in position_models.items():
 
     print()
     print(f"{pos_name} feature importance:")
-    print(importance_df.head(20))
+    print(importance_df.head(20).to_string(index=False))
 
 # ============================================================
 # 10. MODEL SUMMARY
