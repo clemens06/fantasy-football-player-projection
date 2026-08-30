@@ -7,6 +7,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 from xgboost import XGBRegressor
 
+import numpy as np
+
 # ============================================================
 # 1. LOAD DATA
 # ============================================================
@@ -142,6 +144,12 @@ for df in [wr_season, rb_season, te_season]:
     df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
     df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
 
+# Age curve: peak around 27, then decline
+    df["age_sq"] = df["age"] ** 2
+    df["age_curve"] = np.exp(-((df["age"] - 27.5) ** 2) / (2 * 4.5 ** 2))
+    df["prime_age_bonus"] = np.where(df["age"].between(24, 29), 1, 0)
+    df["post_30_decline"] = np.maximum(df["age"] - 30, 0)
+
 # ============================================================
 # 5. CREATE FEATURES
 # ============================================================
@@ -250,6 +258,10 @@ wr_features = [
     "yards_per_reception",
     "fantasy_points_per_game",
     "age",
+    "age_sq",
+    "age_curve",
+    "prime_age_bonus",
+    "post_30_decline",
     "target_share",
     "rushing_yards",
     "rushing_tds",
@@ -274,6 +286,10 @@ rb_features = [
     "yards_per_reception",
     "fantasy_points_per_game",
     "age",
+    "age_sq",
+    "age_curve",
+    "prime_age_bonus",
+    "post_30_decline",
     "target_share",
     "rushing_yards",
     "rushing_tds",
@@ -298,6 +314,10 @@ te_features = [
     "yards_per_reception",
     "fantasy_points_per_game",
     "age",
+    "age_sq",
+    "age_curve",
+    "prime_age_bonus",
+    "post_30_decline",
     "target_share",
     "rushing_yards",
     "rushing_tds",

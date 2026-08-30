@@ -20,7 +20,7 @@ Players are identified by `player_id` (nflverse's `gsis_id`), not by name. Name-
 - Rate/efficiency: targets/game, receptions/game, receiving yards/game, catch rate, yards/target, yards/reception, rushing yards/game, rushing tds/game, carries/game
 - Opportunity share: target share (player targets ÷ team pass attempts)
 - Continuity: previous season's fantasy points, fantasy points/game
-- Context: age (at end of season)
+- Context: age, age squared (creates parabola for model to train on rather than just a line), age curve (even more explicit age graph, peak around 27.5, taper off as players get older or younger), prime age bonus, post 30 decline
 
 ## Methodology
 
