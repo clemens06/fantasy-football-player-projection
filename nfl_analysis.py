@@ -1141,82 +1141,7 @@ print(
 )
 
 # ============================================================
-# 15. GAME COUNT CHECK
-# ============================================================
-
-print()
-
-print(
-    wr_df
-    .groupby(
-        [
-            "season",
-            "player_id",
-            "player_name"
-        ]
-    )["game_id"]
-    .nunique()
-    .sort_values(
-        ascending=False
-    )
-    .head(20)
-)
-
-
-print(
-    wr_df[
-        "season_type"
-    ].value_counts()
-)
-
-print(
-    rb_df
-    .groupby(
-        [
-            "season",
-            "player_id",
-            "player_name"
-        ]
-    )["game_id"]
-    .nunique()
-    .sort_values(
-        ascending=False
-    )
-    .head(20)
-)
-
-
-print(
-    rb_df[
-        "season_type"
-    ].value_counts()
-)
-
-print(
-    te_df
-    .groupby(
-        [
-            "season",
-            "player_id",
-            "player_name"
-        ]
-    )["game_id"]
-    .nunique()
-    .sort_values(
-        ascending=False
-    )
-    .head(20)
-)
-
-
-print(
-    te_df[
-        "season_type"
-    ].value_counts()
-)
-
-# ============================================================
-# 16. 2024 MODEL ERROR ANALYSIS
+# 15. 2024 MODEL ERROR ANALYSIS
 # ============================================================
 
 # Recreate 2024 test set explicitly
@@ -1389,7 +1314,7 @@ te_comparison["absolute_error"] = (
 )
 
 # ============================================================
-# 17. BIGGEST OVERPREDICTIONS
+# 16. BIGGEST OVERPREDICTIONS
 # ============================================================
 
 print()
@@ -1452,7 +1377,7 @@ print(
 )
 
 # ============================================================
-# 18. BIGGEST UNDERPREDICTIONS
+# 17. BIGGEST UNDERPREDICTIONS
 # ============================================================
 
 print()
@@ -1512,7 +1437,7 @@ print(
 )
 
 # ============================================================
-# 19. LARGEST ABSOLUTE ERRORS
+# 18. LARGEST ABSOLUTE ERRORS
 # ============================================================
 
 print()
