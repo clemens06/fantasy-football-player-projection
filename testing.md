@@ -403,3 +403,6 @@ George Kittle     15       94          78             1106               236.6 3
    Kyle Pitts     17       74          47              602               131.2 24.235455                134.558624
   David Njoku     11       97          64              505               148.5 28.476386                133.231583
  Travis Kelce     16      133          97              823               195.4 35.238877                130.694077
+
+Notes: I believe that in general these projections are skewing lower than they should be, especially when it comes to running backs. Keep in mind these projections are for the 2025 season (last year at the time of writing this). That said, these are by far the most fathomable projections that the model has produced thus far. All quality players (Even Kyle Pitts) that have legitimate fantasy upside. 
+Some notable exclusions that I would like to investigate: No Saquon Barkley after a 2000 yard, 360ish point season in the top 10 is deeply disturbing, as well as no Bijan Robinson in spite of Gibbs being the #1 RB, no Derrick Henry (Though I suspect it's age playing a major factor for him, given the model doesn't know how to account for unicorn longevity), no hyper-consistent Amon-Ra St Brown, no Malik Nabers after a nuclear rookie season, and there might be some TEs I'm forgetting. 

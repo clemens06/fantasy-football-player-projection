@@ -9,10 +9,10 @@ Given a player's season-level stats, the model predicts that player's PPR fantas
 ## Data
 
 - **Source:** [nflverse](https://github.com/nflverse/nflverse-data) weekly player stats and player biographical data, 2018–2024 regular seasons.
-- **Scope:** Wide Receivers, Running Backs, Tight Ends, regular season games (`season_type == "REG"`).
+- **Scope:** Wide Receivers, Running Backs, Tight Ends, regular season games.
 - **Unit of analysis:** one row per player-season, aggregated from weekly data and joined to team-level pass attempts to compute target share.
 
-Players are identified by `player_id` (nflverse's `gsis_id`), not by name. Name-based joins can silently merge or split players who show up under different name formats across seasons or sources (e.g. "N.Dell" vs. "T.Dell" for Nathaniel "Tank" Dell) — this project verifies identity resolution explicitly before trusting any aggregation.
+Players are identified by `player_id` (nflverse's `gsis_id`), not by name. Name-based joins can silently merge or split players who show up under different name formats across seasons or sources (e.g. "N.Dell" vs. "T.Dell" for Nathaniel "Tank" Dell). This project verifies identity resolution explicitly before trusting any aggregation.
 
 ## Features
 

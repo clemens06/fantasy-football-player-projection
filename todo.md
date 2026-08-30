@@ -4,7 +4,7 @@
 - Add QBs
 - Add MORE DATA 
 - Get better understanding of XGBRegressor
-LEARN MORE SQL
+- LEARN MORE SQL
 
 ## Project Ideas (in order of priority)
 - Weighted ensemble 
