@@ -210,131 +210,26 @@ te_season[ratio_columns] = (te_season[ratio_columns].replace([float("inf"), -flo
 # 6. CREATE NEXT-SEASON TARGET
 # ============================================================
 
-wr_season["next_season"] = (
-    wr_season["season"] + 1
-)
+wr_season["next_season"] = (wr_season["season"] + 1)
+rb_season["next_season"] = (rb_season["season"] + 1)
+te_season["next_season"] = (te_season["season"] + 1)
 
-rb_season["next_season"] = (
-    rb_season["season"] + 1
-)
+future_wr = wr_season[["season","player_id","fantasy_points_ppr"]].copy()
+future_wr = future_wr.rename(columns={"season": "next_season","fantasy_points_ppr":"next_fantasy_points"})
+wr_model_df = wr_season.merge(future_wr,on=["next_season","player_id"],how="inner")
 
-te_season["next_season"] = (
-    te_season["season"] + 1
-)
+future_rb = rb_season[["season","player_id","fantasy_points_ppr"]].copy()
+future_rb = future_rb.rename(columns={"season": "next_season","fantasy_points_ppr":"next_fantasy_points"})
+rb_model_df = rb_season.merge(future_rb,on=["next_season","player_id"],how="inner")
 
-future_wr = wr_season[
-    [
-        "season",
-        "player_id",
-        "fantasy_points_ppr"
-    ]
-].copy()
-
-future_wr = future_wr.rename(
-    columns={
-        "season": "next_season",
-        "fantasy_points_ppr":
-            "next_fantasy_points"
-    }
-)
-
-
-wr_model_df = wr_season.merge(
-    future_wr,
-    on=[
-        "next_season",
-        "player_id"
-    ],
-    how="inner"
-)
-
-future_rb = rb_season[
-    [
-        "season",
-        "player_id",
-        "fantasy_points_ppr"
-    ]
-].copy()
-
-future_rb = future_rb.rename(
-    columns={
-        "season": "next_season",
-        "fantasy_points_ppr":
-            "next_fantasy_points"
-    }
-)
-
-
-rb_model_df = rb_season.merge(
-    future_rb,
-    on=[
-        "next_season",
-        "player_id"
-    ],
-    how="inner"
-)
-
-future_te = te_season[
-    [
-        "season",
-        "player_id",
-        "fantasy_points_ppr"
-    ]
-].copy()
-
-future_te = future_te.rename(
-    columns={
-        "season": "next_season",
-        "fantasy_points_ppr":
-            "next_fantasy_points"
-    }
-)
-
-
-te_model_df = te_season.merge(
-    future_te,
-    on=[
-        "next_season",
-        "player_id"
-    ],
-    how="inner"
-)
+future_te = te_season[["season","player_id","fantasy_points_ppr"]].copy()
+future_te = future_te.rename(columns={"season": "next_season","fantasy_points_ppr":"next_fantasy_points"})
+te_model_df = te_season.merge(future_te,on=["next_season","player_id"],how="inner")
 
 # Previous-season fantasy points
-
-wr_model_df["previous_fantasy_points"] = (
-    wr_model_df["fantasy_points_ppr"]
-)
-
-rb_model_df["previous_fantasy_points"] = (
-    rb_model_df["fantasy_points_ppr"]
-)
-
-te_model_df["previous_fantasy_points"] = (
-    te_model_df["fantasy_points_ppr"]
-)
-
-
-# print()
-# print("Model rows by season:")
-
-# print(
-#     wr_model_df
-#     .groupby("season")
-#     .size()
-# )
-
-# print(
-#     rb_model_df
-#     .groupby("season")
-#     .size()
-# )
-
-# print(
-#     te_model_df
-#     .groupby("season")
-#     .size()
-# )
+wr_model_df["previous_fantasy_points"] = (wr_model_df["fantasy_points_ppr"])
+rb_model_df["previous_fantasy_points"] = (rb_model_df["fantasy_points_ppr"])
+te_model_df["previous_fantasy_points"] = (te_model_df["fantasy_points_ppr"])
 
 # ============================================================
 # 7. DEFINE FEATURES
