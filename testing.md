@@ -47,7 +47,7 @@ Random Forest: 44.52
 XGBoost: 44.32
 Ensemble: 42.71
 
-### WR + RB + TE model
+### Initial WR + RB + TE model
 
 *2020*
 Linear Regression MAE: 33.74
@@ -91,7 +91,7 @@ Ensemble MAE: 30.6
 
 # Feature Importance History
 
-### Original WR only model
+### Original WR only model > XGBoost
 
 previous_fantasy_points    0.332
 receiving_yards            0.211

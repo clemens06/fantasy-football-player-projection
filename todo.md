@@ -1,10 +1,7 @@
 # To Do
 
 ##  Need to do (in order of priority)
-- Print RB/TE projections 
 - Edit README
-- clean nfl_analysis.py (too much clunkiness, redundancy esp when creating models)
-- WHO IS TONY JONES????
 - Add QBs
 - Get individuals MAEs for each position group
 - Add MORE DATA 

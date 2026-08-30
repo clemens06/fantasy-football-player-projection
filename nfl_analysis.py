@@ -316,17 +316,9 @@ print("=" * 60)
 print("CROSS-SEASON MODEL VALIDATION")
 print("=" * 60)
 
-pos_feature_map = {
-    "WR": wr_features,
-    "RB": rb_features,
-    "TE": te_features
-}
+pos_feature_map = {"WR": wr_features,"RB": rb_features,"TE": te_features}
 
-position_dfs = {
-    "WR": wr_model_df,
-    "RB": rb_model_df,
-    "TE": te_model_df
-}
+position_dfs = {"WR": wr_model_df,"RB": rb_model_df,"TE": te_model_df}
 
 validation_results = []
 
@@ -346,9 +338,13 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         print("Training:", X_train.shape)
         print("Testing:", X_test.shape)
 
+        # Baseline
+        baseline_predictions = (test_df["previous_fantasy_points"])
+        baseline_mae = mean_absolute_error(y_test,baseline_predictions)
+        print("Baseline MAE:",round(baseline_mae, 2))
+
         # Linear Regression
         linear_model = LinearRegression()
-
         linear_model.fit(X_train, y_train)
         linear_predictions = (linear_model.predict(X_test))
         linear_mae = mean_absolute_error(y_test,linear_predictions)
@@ -360,11 +356,6 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         ridge_predictions = (ridge_model.predict(X_test))
         ridge_mae = mean_absolute_error(y_test,ridge_predictions)
         print("Ridge Regression MAE:",round(ridge_mae, 2))
-
-        # Baseline
-        baseline_predictions = (test_df["previous_fantasy_points"])
-        baseline_mae = mean_absolute_error(y_test,baseline_predictions)
-        print("Baseline MAE:",round(baseline_mae, 2))
 
         # Random Forest
         rf_model = RandomForestRegressor(n_estimators=300,max_depth=8,random_state=42)
@@ -382,7 +373,8 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         reg_lambda=5.0,
         subsample=0.8,
         random_state=42
-    )
+        )
+
         xgb_model.fit(X_train, y_train)
         xgb_predictions = xgb_model.predict(X_test)
         xgb_mae = mean_absolute_error(y_test, xgb_predictions)
@@ -402,10 +394,7 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
             "Ensemble": ensemble_mae
         }
 
-        best_model_name, best_model_mae = min(
-            model_maes.items(),
-            key=lambda x: x[1]
-        )
+        best_model_name, best_model_mae = min(model_maes.items(),key=lambda x: x[1])
 
         print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
 
@@ -442,19 +431,12 @@ for pos_name, pos_df in position_dfs.items():
         subsample=0.8,
         random_state=42
     )
-    model.fit(
-        pos_df[pos_feature_map[pos_name]],
-        pos_df["next_fantasy_points"]
-    )
+    model.fit(pos_df[pos_feature_map[pos_name]],pos_df["next_fantasy_points"])
     position_models[pos_name] = model
 
 for pos_name, model in position_models.items():
-    importance_df = pd.DataFrame({
-        "feature": pos_feature_map[pos_name],
-        "importance": model.feature_importances_
-    }).sort_values("importance", ascending=False)
+    importance_df = pd.DataFrame({"feature": pos_feature_map[pos_name],"importance": model.feature_importances_}).sort_values("importance", ascending=False)
 
-    
     print()
     print(f"{pos_name} feature importance:")
     print(importance_df.head(20))
@@ -468,36 +450,18 @@ print("=" * 60)
 print("MODEL SUMMARY")
 print("=" * 60)
 
-
-print(
-    f"Training rows: {len(wr_model_df)}"
-)
-
-print(
-    f"Training rows: {len(rb_model_df)}"
-)
-
-print(
-    f"Training rows: {len(te_model_df)}"
-)
-
-print(
-    f"Features: {len(pos_feature_map[pos_name])}"
-)
+print(f"Training rows: {len(wr_model_df)}")
+print(f"Training rows: {len(rb_model_df)}")
+print(f"Training rows: {len(te_model_df)}")
+print(f"Features: {len(pos_feature_map[pos_name])}")
 
 summary_df = pd.DataFrame(validation_results)
-
 
 print()
 print(summary_df.head())
 
 # average MAE by position
-pos_avg_mae = (
-    summary_df
-    .groupby("position")["best_mae"]
-    .mean()
-    .sort_values()
-)
+pos_avg_mae = (summary_df.groupby("position")["best_mae"].mean().sort_values())
 
 print()
 print("Average best MAE by position:")
@@ -523,7 +487,6 @@ print("OVERALL BEST MODEL")
 print("=" * 60)
 print("Best model by average MAE:", overall_best_model)
 print("Average MAE:", round(overall_best_mae, 2))
-
 print(avg_mae_by_model.round(3))
 
 # ============================================================
@@ -534,8 +497,6 @@ print()
 print("=" * 60)
 print("2025 WR PROJECTIONS")
 print("=" * 60)
-
-
 
 final_models = {}
 
@@ -549,11 +510,7 @@ for pos_name, pos_df in position_dfs.items():
         random_state=42
     )
 
-    final_model.fit(
-        pos_df[pos_feature_map[pos_name]],
-        pos_df["next_fantasy_points"]
-    )
-
+    final_model.fit(pos_df[pos_feature_map[pos_name]],pos_df["next_fantasy_points"])
     final_models[pos_name] = final_model
 
 # WR projection generation
@@ -561,12 +518,12 @@ wr_projection_df = wr_season[wr_season["season"] == 2024].copy()
 wr_projection_df["previous_fantasy_points"] = wr_projection_df["fantasy_points_ppr"]
 wr_projection_df["age"] = wr_projection_df["age"].fillna(wr_projection_df["age"].median())
 wr_projection_df["projected_fantasy_points"] = final_models["WR"].predict(
-    wr_projection_df[pos_feature_map["WR"]]
+wr_projection_df[pos_feature_map["WR"]]
 )
 wr_projection_df = wr_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print("Top 25 WR Projections for 2025")
+print("Top 10 WR Projections for 2025")
 print(
     wr_projection_df[
         [
@@ -580,7 +537,7 @@ print(
             "projected_fantasy_points"
         ]
     ]
-    .head(25)
+    .head(10)
     .to_string(index=False)
 )
 
@@ -589,12 +546,12 @@ rb_projection_df = rb_season[rb_season["season"] == 2024].copy()
 rb_projection_df["previous_fantasy_points"] = rb_projection_df["fantasy_points_ppr"]
 rb_projection_df["age"] = rb_projection_df["age"].fillna(rb_projection_df["age"].median())
 rb_projection_df["projected_fantasy_points"] = final_models["RB"].predict(
-    rb_projection_df[pos_feature_map["RB"]]
+rb_projection_df[pos_feature_map["RB"]]
 )
 rb_projection_df = rb_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print("Top 25 RB Projections for 2025")
+print("Top 10 RB Projections for 2025")
 print(
     rb_projection_df[
         [
@@ -608,7 +565,7 @@ print(
             "projected_fantasy_points"
         ]
     ]
-    .head(25)
+    .head(10)
     .to_string(index=False)
 )
 
@@ -617,12 +574,12 @@ te_projection_df = te_season[te_season["season"] == 2024].copy()
 te_projection_df["previous_fantasy_points"] = te_projection_df["fantasy_points_ppr"]
 te_projection_df["age"] = te_projection_df["age"].fillna(te_projection_df["age"].median())
 te_projection_df["projected_fantasy_points"] = final_models["TE"].predict(
-    te_projection_df[pos_feature_map["TE"]]
+te_projection_df[pos_feature_map["TE"]]
 )
 te_projection_df = te_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print("Top 25 TE Projections for 2025")
+print("Top 10 TE Projections for 2025")
 print(
     te_projection_df[
         [
@@ -636,7 +593,7 @@ print(
             "projected_fantasy_points"
         ]
     ]
-    .head(25)
+    .head(10)
     .to_string(index=False)
 )
 
@@ -645,69 +602,26 @@ print(
 # ============================================================
 
 # Recreate 2024 test set explicitly
-
-wr_train_df = wr_model_df[
-    wr_model_df["next_season"] < 2024
-]
-
-wr_test_df = wr_model_df[
-    wr_model_df["next_season"] == 2024
-]
-
-
+wr_train_df = wr_model_df[wr_model_df["next_season"] < 2024]
+wr_test_df = wr_model_df[wr_model_df["next_season"] == 2024]
 wr_X_train = wr_train_df[pos_feature_map["WR"]]
-
-wr_y_train = wr_train_df[
-    "next_fantasy_points"
-]
-
+wr_y_train = wr_train_df["next_fantasy_points"]
 wr_X_test = wr_test_df[pos_feature_map["WR"]]
+wr_y_test = wr_test_df["next_fantasy_points"]
 
-wr_y_test = wr_test_df[
-    "next_fantasy_points"
-]
-
-rb_train_df = rb_model_df[
-    rb_model_df["next_season"] < 2024
-]
-
-rb_test_df = rb_model_df[
-    rb_model_df["next_season"] == 2024
-]
-
-
+rb_train_df = rb_model_df[rb_model_df["next_season"] < 2024]
+rb_test_df = rb_model_df[rb_model_df["next_season"] == 2024]
 rb_X_train = rb_train_df[pos_feature_map["RB"]]
-
-rb_y_train = rb_train_df[
-    "next_fantasy_points"
-]
-
+rb_y_train = rb_train_df["next_fantasy_points"]
 rb_X_test = rb_test_df[pos_feature_map["RB"]]
+rb_y_test = rb_test_df["next_fantasy_points"]
 
-rb_y_test = rb_test_df[
-    "next_fantasy_points"
-]
-
-te_train_df = te_model_df[
-    te_model_df["next_season"] < 2024
-]
-
-te_test_df = te_model_df[
-    te_model_df["next_season"] == 2024
-]
-
-
+te_train_df = te_model_df[te_model_df["next_season"] < 2024]
+te_test_df = te_model_df[te_model_df["next_season"] == 2024]
 te_X_train = te_train_df[pos_feature_map["TE"]]
-
-te_y_train = te_train_df[
-    "next_fantasy_points"
-]
-
+te_y_train = te_train_df["next_fantasy_points"]
 te_X_test = te_test_df[pos_feature_map["TE"]]
-
-te_y_test = te_test_df[
-    "next_fantasy_points"
-]
+te_y_test = te_test_df["next_fantasy_points"]
 
 # Train 2024 evaluation model
 
@@ -729,89 +643,29 @@ te_rf_model = RandomForestRegressor(
     random_state=42
 )
 
-wr_rf_model.fit(
-    wr_X_train,
-    wr_y_train
-)
+wr_rf_model.fit(wr_X_train,wr_y_train)
+rb_rf_model.fit(rb_X_train,rb_y_train)
+te_rf_model.fit(te_X_train,te_y_train)
 
-rb_rf_model.fit(
-    rb_X_train,
-    rb_y_train
-)
+wr_predictions = wr_rf_model.predict(wr_X_test)
+rb_predictions = rb_rf_model.predict(rb_X_test)
+te_predictions = te_rf_model.predict(te_X_test)
 
-te_rf_model.fit(
-    te_X_train,
-    te_y_train
-)
-
-wr_predictions = wr_rf_model.predict(
-    wr_X_test
-)
-
-rb_predictions = rb_rf_model.predict(
-    rb_X_test
-)
-
-te_predictions = te_rf_model.predict(
-    te_X_test
-)
-
-wr_comparison = wr_test_df[
-    [
-        "player_id",
-        "player_name",
-        "next_fantasy_points"
-    ]
-].copy()
-
-rb_comparison = rb_test_df[
-    [
-        "player_id",
-        "player_name",
-        "next_fantasy_points"
-    ]
-].copy()
-
-te_comparison = te_test_df[
-    [
-        "player_id",
-        "player_name",
-        "next_fantasy_points"
-    ]
-].copy()
+wr_comparison = wr_test_df[["player_id","player_name","next_fantasy_points"]].copy()
+rb_comparison = rb_test_df[["player_id","player_name","next_fantasy_points"]].copy()
+te_comparison = te_test_df[["player_id","player_name","next_fantasy_points"]].copy()
 
 wr_comparison["predicted"] = wr_predictions
-
 rb_comparison["predicted"] = rb_predictions
-
 te_comparison["predicted"] = te_predictions
 
-wr_comparison["error"] = (
-    wr_comparison["predicted"]
-    - wr_comparison["next_fantasy_points"]
-)
+wr_comparison["error"] = (wr_comparison["predicted"] - wr_comparison["next_fantasy_points"])
+rb_comparison["error"] = (rb_comparison["predicted"] - rb_comparison["next_fantasy_points"])
+te_comparison["error"] = (te_comparison["predicted"] - te_comparison["next_fantasy_points"])
 
-rb_comparison["error"] = (
-    rb_comparison["predicted"]
-    - rb_comparison["next_fantasy_points"]
-)
-
-te_comparison["error"] = (
-    te_comparison["predicted"]
-    - te_comparison["next_fantasy_points"]
-)
-
-wr_comparison["absolute_error"] = (
-    wr_comparison["error"].abs()
-)
-
-rb_comparison["absolute_error"] = (
-    rb_comparison["error"].abs()
-)
-
-te_comparison["absolute_error"] = (
-    te_comparison["error"].abs()
-)
+wr_comparison["absolute_error"] = (wr_comparison["error"].abs())
+rb_comparison["absolute_error"] = (rb_comparison["error"].abs())
+te_comparison["absolute_error"] = (te_comparison["error"].abs())
 
 # ============================================================
 # 13. BIGGEST OVERPREDICTIONS
@@ -824,12 +678,7 @@ print("=" * 60)
 
 print()
 print("WR")
-print(
-    wr_comparison
-    .sort_values(
-        "error",
-        ascending=False
-    )[
+print(wr_comparison.sort_values("error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
@@ -842,12 +691,7 @@ print(
 
 print()
 print("RB")
-print(
-    rb_comparison
-    .sort_values(
-        "error",
-        ascending=False
-    )[
+print(rb_comparison.sort_values("error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
@@ -860,12 +704,7 @@ print(
 
 print()
 print("TE")
-print(
-    te_comparison
-    .sort_values(
-        "error",
-        ascending=False
-    )[
+print(te_comparison.sort_values("error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
@@ -887,11 +726,7 @@ print("=" * 60)
 
 print()
 print("WR")
-print(
-    wr_comparison
-    .sort_values(
-        "error"
-    )[
+print(wr_comparison.sort_values("error")[
         [
             "player_name",
             "next_fantasy_points",
@@ -904,11 +739,7 @@ print(
 
 print()
 print("RB")
-print(
-    rb_comparison
-    .sort_values(
-        "error"
-    )[
+print(rb_comparison.sort_values("error")[
         [
             "player_name",
             "next_fantasy_points",
@@ -921,11 +752,7 @@ print(
 
 print()
 print("TE")
-print(
-    te_comparison
-    .sort_values(
-        "error"
-    )[
+print(te_comparison.sort_values("error")[
         [
             "player_name",
             "next_fantasy_points",
@@ -947,12 +774,7 @@ print("=" * 60)
 
 print()
 print("WR")
-print(
-    wr_comparison
-    .sort_values(
-        "absolute_error",
-        ascending=False
-    )[
+print(wr_comparison.sort_values("absolute_error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
@@ -965,12 +787,7 @@ print(
 
 print()
 print("RB")
-print(
-    rb_comparison
-    .sort_values(
-        "absolute_error",
-        ascending=False
-    )[
+print(rb_comparison.sort_values("absolute_error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
@@ -983,12 +800,7 @@ print(
 
 print()
 print("TE")
-print(
-    te_comparison
-    .sort_values(
-        "absolute_error",
-        ascending=False
-    )[
+print(te_comparison.sort_values("absolute_error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
