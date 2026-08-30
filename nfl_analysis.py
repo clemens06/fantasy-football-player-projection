@@ -1026,56 +1026,15 @@ print("Average MAE:", round(overall_best_mae, 2))
 
 print(avg_mae_by_model.round(3))
 
-
-# # ============================================================
-# # 14. PLAYER DATA CHECK
-# # ============================================================
-
-# print()
-
-# print(
-#     nfl_df[
-#         [
-#             "player_id",
-#             "player_name"
-#         ]
-#     ]
-#     .drop_duplicates()
-#     .head(20)
-# )
-
-# print(
-#     nfl_df["player_id"].dtype
-# )
-
-
-# print(
-#     nfl_df[
-#         [
-#             "player_id",
-#             "player_name",
-#             "player_display_name"
-#         ]
-#     ]
-#     .drop_duplicates()
-#     .head(30)
-# )
-
-
-# print(
-#     "\nUnique players:",
-#     nfl_df["player_id"].nunique()
-# )
-
-
 # ============================================================
-# 15. GENERATE 2025 PROJECTIONS
+# 14. GENERATE 2025 PROJECTIONS
 # ============================================================
 
 print()
 print("=" * 60)
 print("2025 WR PROJECTIONS")
 print("=" * 60)
+
 
 
 final_models = {}
@@ -1097,90 +1056,17 @@ for pos_name, pos_df in position_dfs.items():
 
     final_models[pos_name] = final_model
 
-# Train final ensemble on all historical examples
-
-final_linear_model = LinearRegression()
-
-final_linear_model.fit(
-    wr_model_df[pos_feature_map["WR"]],
-    wr_model_df["next_fantasy_points"]
-)
-
-final_xgb_model = XGBRegressor(
-    n_estimators=100,
-    max_depth=3,
-    learning_rate=0.05,
-    reg_lambda=5.0,
-    subsample=0.8,
-    random_state=42
-)
-
-final_xgb_model.fit(
-    wr_model_df[pos_feature_map["WR"]],
-    wr_model_df["next_fantasy_points"]
-)
-
-
-# Get 2024 WRs
-
-wr_projection_df = wr_season[
-    wr_season["season"] == 2024
-].copy()
-
-
-wr_projection_df[
-    "previous_fantasy_points"
-] = (
-    wr_projection_df[
-        "fantasy_points_ppr"
-    ]
-)
-
-
-# Fill missing ages
-
-wr_projection_df["age"] = (
-    wr_projection_df["age"]
-    .fillna(
-        wr_projection_df["age"].median()
-    )
-)
-
-
-# Generate projections
-
-linear_proj = final_linear_model.predict(
+# WR projection generation
+wr_projection_df = wr_season[wr_season["season"] == 2024].copy()
+wr_projection_df["previous_fantasy_points"] = wr_projection_df["fantasy_points_ppr"]
+wr_projection_df["age"] = wr_projection_df["age"].fillna(wr_projection_df["age"].median())
+wr_projection_df["projected_fantasy_points"] = final_models["WR"].predict(
     wr_projection_df[pos_feature_map["WR"]]
 )
-
-xgb_proj = final_xgb_model.predict(
-    wr_projection_df[pos_feature_map["WR"]]
-)
-
-wr_projection_df[
-    "projected_fantasy_points"
-] = (linear_proj + xgb_proj) / 2
-
-
-# Sort projections
-
-wr_projection_df = (
-    wr_projection_df
-    .sort_values(
-        "projected_fantasy_points",
-        ascending=False
-    )
-)
-
+wr_projection_df = wr_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print(
-    "Top 25 WR Projections for 2025:"
-)
-
-print()
-
-
+print("Top 25 WR Projections for 2025")
 print(
     wr_projection_df[
         [
@@ -1198,66 +1084,17 @@ print(
     .to_string(index=False)
 )
 
-# Get 2024 rbs
-
-rb_projection_df = rb_season[
-    rb_season["season"] == 2024
-].copy()
-
-
-rb_projection_df[
-    "previous_fantasy_points"
-] = (
-    rb_projection_df[
-        "fantasy_points_ppr"
-    ]
-)
-
-
-# Fill missing ages
-
-rb_projection_df["age"] = (
-    rb_projection_df["age"]
-    .fillna(
-        rb_projection_df["age"].median()
-    )
-)
-
-
-# Generate projections
-
-linear_proj = final_linear_model.predict(
+# RB projection generation
+rb_projection_df = rb_season[rb_season["season"] == 2024].copy()
+rb_projection_df["previous_fantasy_points"] = rb_projection_df["fantasy_points_ppr"]
+rb_projection_df["age"] = rb_projection_df["age"].fillna(rb_projection_df["age"].median())
+rb_projection_df["projected_fantasy_points"] = final_models["RB"].predict(
     rb_projection_df[pos_feature_map["RB"]]
 )
-
-xgb_proj = final_xgb_model.predict(
-    rb_projection_df[pos_feature_map["RB"]]
-)
-
-rb_projection_df[
-    "projected_fantasy_points"
-] = (linear_proj + xgb_proj) / 2
-
-
-# Sort projections
-
-rb_projection_df = (
-    rb_projection_df
-    .sort_values(
-        "projected_fantasy_points",
-        ascending=False
-    )
-)
-
+rb_projection_df = rb_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print(
-    "Top 25 RB Projections for 2025:"
-)
-
-print()
-
-
+print("Top 25 RB Projections for 2025")
 print(
     rb_projection_df[
         [
@@ -1275,66 +1112,17 @@ print(
     .to_string(index=False)
 )
 
-# Get 2024 TEs
-
-te_projection_df = te_season[
-    te_season["season"] == 2024
-].copy()
-
-
-te_projection_df[
-    "previous_fantasy_points"
-] = (
-    te_projection_df[
-        "fantasy_points_ppr"
-    ]
-)
-
-
-# Fill missing ages
-
-te_projection_df["age"] = (
-    te_projection_df["age"]
-    .fillna(
-        te_projection_df["age"].median()
-    )
-)
-
-
-# Generate projections
-
-linear_proj = final_linear_model.predict(
+# TE projection generation
+te_projection_df = te_season[te_season["season"] == 2024].copy()
+te_projection_df["previous_fantasy_points"] = te_projection_df["fantasy_points_ppr"]
+te_projection_df["age"] = te_projection_df["age"].fillna(te_projection_df["age"].median())
+te_projection_df["projected_fantasy_points"] = final_models["TE"].predict(
     te_projection_df[pos_feature_map["TE"]]
 )
-
-xgb_proj = final_xgb_model.predict(
-    te_projection_df[pos_feature_map["TE"]]
-)
-
-te_projection_df[
-    "projected_fantasy_points"
-] = (linear_proj + xgb_proj) / 2
-
-
-# Sort projections
-
-te_projection_df = (
-    te_projection_df
-    .sort_values(
-        "projected_fantasy_points",
-        ascending=False
-    )
-)
-
+te_projection_df = te_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print(
-    "Top 25 TE Projections for 2025:"
-)
-
-print()
-
-
+print("Top 25 TE Projections for 2025")
 print(
     te_projection_df[
         [
@@ -1353,7 +1141,7 @@ print(
 )
 
 # ============================================================
-# 16. GAME COUNT CHECK
+# 15. GAME COUNT CHECK
 # ============================================================
 
 print()
@@ -1428,7 +1216,7 @@ print(
 )
 
 # ============================================================
-# 17. 2024 MODEL ERROR ANALYSIS
+# 16. 2024 MODEL ERROR ANALYSIS
 # ============================================================
 
 # Recreate 2024 test set explicitly
@@ -1601,7 +1389,7 @@ te_comparison["absolute_error"] = (
 )
 
 # ============================================================
-# 18. BIGGEST OVERPREDICTIONS
+# 17. BIGGEST OVERPREDICTIONS
 # ============================================================
 
 print()
@@ -1664,7 +1452,7 @@ print(
 )
 
 # ============================================================
-# 19. BIGGEST UNDERPREDICTIONS
+# 18. BIGGEST UNDERPREDICTIONS
 # ============================================================
 
 print()
@@ -1724,7 +1512,7 @@ print(
 )
 
 # ============================================================
-# 20. LARGEST ABSOLUTE ERRORS
+# 19. LARGEST ABSOLUTE ERRORS
 # ============================================================
 
 print()
@@ -1785,132 +1573,3 @@ print(
     ]
     .head(20)
 )
-
-# # ============================================================
-# # 21. DUPLICATE CHECK ON 2024 TEST SET
-# # ============================================================
-
-# print()
-# print("=" * 60)
-# print("2024 TEST SET DUPLICATE CHECK")
-# print("=" * 60)
-
-
-# print(
-#     "Rows:",
-#     len(wr_comparison)
-# )
-
-# print(
-#     "Unique player IDs:",
-#     wr_comparison["player_id"].nunique()
-# )
-
-
-# duplicates = wr_comparison[
-#     wr_comparison["player_id"].duplicated(
-#         keep=False
-#     )
-# ]
-
-
-# print(
-#     "Duplicate player IDs:"
-# )
-
-# print(
-#     duplicates
-#     .sort_values("player_id")
-# )
-
-
-# # ============================================================
-# # 22. PROBLEM PLAYER CHECK
-# # ============================================================
-
-# problem_ids = [
-#     "00-0035216",
-#     "00-0037240",
-#     "00-0038977"
-# ]
-
-
-# print()
-# print("=" * 60)
-# print("PROBLEM PLAYER CHECK")
-# print("=" * 60)
-
-
-# print(
-#     wr_season[
-#         wr_season["player_id"]
-#         .isin(problem_ids)
-#     ][
-#         [
-#             "player_id",
-#             "player_name",
-#             "season",
-#             "games",
-#             "targets",
-#             "receptions",
-#             "receiving_yards",
-#             "fantasy_points_ppr"
-#         ]
-#     ]
-#     .sort_values(
-#         [
-#             "player_id",
-#             "season"
-#         ]
-#     )
-# )
-
-# print(
-#     rb_season[
-#         rb_season["player_id"]
-#         .isin(problem_ids)
-#     ][
-#         [
-#             "player_id",
-#             "player_name",
-#             "season",
-#             "games",
-#             "targets",
-#             "receptions",
-#             "receiving_yards",
-#             "fantasy_points_ppr"
-#         ]
-#     ]
-#     .sort_values(
-#         [
-#             "player_id",
-#             "season"
-#         ]
-#     )
-# )
-
-# print(
-#     te_season[
-#         te_season["player_id"]
-#         .isin(problem_ids)
-#     ][
-#         [
-#             "player_id",
-#             "player_name",
-#             "season",
-#             "games",
-#             "targets",
-#             "receptions",
-#             "receiving_yards",
-#             "fantasy_points_ppr"
-#         ]
-#     ]
-#     .sort_values(
-#         [
-#             "player_id",
-#             "season"
-#         ]
-#     )
-# )
-
-# print(nfl_df.columns)
