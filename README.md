@@ -48,6 +48,8 @@ sql_queries.py loads the same CSVs into an SQLite database and reproduces two op
 
 ## Results
 
+Most recent results posted here but I will keep a record of all results in testing.md
+
 Mean absolute error in PPR Fantasy points, by prediction season:
 
 **Bolded = best model that season.**

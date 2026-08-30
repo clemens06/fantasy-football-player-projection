@@ -51,9 +51,9 @@ players_df = pd.read_csv(
     low_memory=False
 )
 
-print("\nPlayer data:")
-print(players_df.columns)
-print(players_df.head())
+# print("\nPlayer data:")
+# print(players_df.columns)
+# print(players_df.head())
 
 
 # Combine NFL data
@@ -63,12 +63,12 @@ nfl_df = pd.concat(
     ignore_index=True
 )
 
-print(
-    [
-        col for col in nfl_df.columns
-        if "team" in col.lower()
-    ]
-)
+# print(
+#     [
+#         col for col in nfl_df.columns
+#         if "team" in col.lower()
+#     ]
+# )
 
 
 # Only regular season
@@ -77,7 +77,7 @@ nfl_df = nfl_df[
     nfl_df["season_type"] == "REG"
 ].copy()
 
-print("Dataset shape:", nfl_df.shape)
+# print("Dataset shape:", nfl_df.shape)
 
 
 # ============================================================
@@ -89,7 +89,7 @@ wr_df = nfl_df[
     nfl_df["position"] == "WR"
 ].copy()
 
-print("WR rows:", wr_df.shape)
+# print("WR rows:", wr_df.shape)
 
 # Sum team pass attempts per week, from QB rows in the full weekly dataset
 team_attempts = (
@@ -113,7 +113,7 @@ rb_df = nfl_df[
     nfl_df["position"] == "RB"
 ].copy()
 
-print("RB rows:", rb_df.shape)
+# print("RB rows:", rb_df.shape)
 
 #add team pass attempts to RB dataframe as well
 rb_df = rb_df.merge(
@@ -128,7 +128,7 @@ te_df = nfl_df[
     nfl_df["position"] == "TE"
 ].copy()
 
-print("TE rows:", te_df.shape)
+# print("TE rows:", te_df.shape)
 
 #add team pass attempts to TE dataframe as well
 te_df = te_df.merge(
@@ -168,9 +168,6 @@ wr_season = (
     )
     .reset_index()
 )
-
-print(wr_df[["season", "week", "team", "team_pass_attempts"]].head(20))
-
 
 rb_season = (
     rb_df
@@ -294,72 +291,74 @@ for df in [wr_season, rb_season, te_season]:
     df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
     df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
 
-print(
-    wr_season[["player_name", "season", "birth_date", "age"]].head(10)
-)
+# print(
+#     wr_season[["player_name", "season", "birth_date", "age"]].head(10)
+#     rb_season[["player_name", "season", "birth_date", "age"]].head(10)
+#     te_season[["player_name", "season", "birth_date", "age"]].head(10)
+# )
 
-# ============================================================
-# 5. PLAYER IDENTITY CHECK
-# ============================================================
+# # ============================================================
+# # 5. PLAYER IDENTITY CHECK
+# # ============================================================
 
-print()
-print("=" * 60)
-print("PLAYER IDENTITY CHECK")
-print("=" * 60)
-
-
-duplicate_player_seasons = (
-    wr_season
-    .duplicated(
-        subset=[
-            "season",
-            "player_id"
-        ],
-        keep=False
-    )
-)
+# print()
+# print("=" * 60)
+# print("PLAYER IDENTITY CHECK")
+# print("=" * 60)
 
 
-print(
-    "Duplicate player-seasons:",
-    duplicate_player_seasons.sum()
-)
+# duplicate_player_seasons = (
+#     wr_season
+#     .duplicated(
+#         subset=[
+#             "season",
+#             "player_id"
+#         ],
+#         keep=False
+#     )
+# )
 
 
-print(
-    wr_season[
-        duplicate_player_seasons
-    ]
-    .sort_values(
-        ["player_id", "season"]
-    )
-)
+# print(
+#     "Duplicate player-seasons:",
+#     duplicate_player_seasons.sum()
+# )
 
 
-# ============================================================
-# 6. TANK DELL CHECK
-# ============================================================
+# print(
+#     wr_season[
+#         duplicate_player_seasons
+#     ]
+#     .sort_values(
+#         ["player_id", "season"]
+#     )
+# )
 
-print()
-print("TANK DELL CHECK:")
 
-print(
-    wr_season[
-        wr_season["player_id"] == "00-0038977"
-    ][
-        [
-            "player_id",
-            "player_name",
-            "season",
-            "games",
-            "targets",
-            "receptions",
-            "receiving_yards",
-            "fantasy_points_ppr"
-        ]
-    ]
-    .sort_values("season")
-)
+# # ============================================================
+# # 6. TANK DELL CHECK
+# # ============================================================
+
+# print()
+# print("TANK DELL CHECK:")
+
+# print(
+#     wr_season[
+#         wr_season["player_id"] == "00-0038977"
+#     ][
+#         [
+#             "player_id",
+#             "player_name",
+#             "season",
+#             "games",
+#             "targets",
+#             "receptions",
+#             "receiving_yards",
+#             "fantasy_points_ppr"
+#         ]
+#     ]
+#     .sort_values("season")
+# )
 
 
 # ============================================================
@@ -695,26 +694,26 @@ te_model_df["previous_fantasy_points"] = (
 )
 
 
-print()
-print("Model rows by season:")
+# print()
+# print("Model rows by season:")
 
-print(
-    wr_model_df
-    .groupby("season")
-    .size()
-)
+# print(
+#     wr_model_df
+#     .groupby("season")
+#     .size()
+# )
 
-print(
-    rb_model_df
-    .groupby("season")
-    .size()
-)
+# print(
+#     rb_model_df
+#     .groupby("season")
+#     .size()
+# )
 
-print(
-    te_model_df
-    .groupby("season")
-    .size()
-)
+# print(
+#     te_model_df
+#     .groupby("season")
+#     .size()
+# )
 
 # ============================================================
 # 9. DEFINE FEATURES
@@ -837,7 +836,7 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
     ("WR", wr_model_df),
     ("RB", rb_model_df),
     ("TE", te_model_df)
-]:
+    ]:
         
         train_df = pos_df[pos_df["next_season"] < 2024]
         test_df = pos_df[pos_df["next_season"] == 2024]
