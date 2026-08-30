@@ -815,7 +815,6 @@ position_dfs = {
 validation_results = []
 
 for prediction_season in [2020, 2021, 2022, 2023, 2024]:
-
     for pos_name, pos_df in position_dfs.items():
         train_df = pos_df[pos_df["next_season"] < prediction_season].copy()
         test_df = pos_df[pos_df["next_season"] == prediction_season].copy()
@@ -831,83 +830,81 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         print("Training:", X_train.shape)
         print("Testing:", X_test.shape)
 
-    print ()
+        # Linear Regression
+        linear_model = LinearRegression()
 
-    # Linear Regression
-    linear_model = LinearRegression()
+        linear_model.fit(X_train, y_train)
+        linear_predictions = (linear_model.predict(X_test))
+        linear_mae = mean_absolute_error(y_test,linear_predictions)
+        print("Linear Regression MAE:", round(linear_mae, 2))
 
-    linear_model.fit(X_train, y_train)
-    linear_predictions = (linear_model.predict(X_test))
-    linear_mae = mean_absolute_error(y_test,linear_predictions)
-    print("Linear Regression MAE:", round(linear_mae, 2))
+        # Ridge Regression
+        ridge_model = Ridge(alpha=1.0)
+        ridge_model.fit(X_train,y_train)
+        ridge_predictions = (ridge_model.predict(X_test))
+        ridge_mae = mean_absolute_error(y_test,ridge_predictions)
+        print("Ridge Regression MAE:",round(ridge_mae, 2))
 
-    # Ridge Regression
-    ridge_model = Ridge(alpha=1.0)
-    ridge_model.fit(X_train,y_train)
-    ridge_predictions = (ridge_model.predict(X_test))
-    ridge_mae = mean_absolute_error(y_test,ridge_predictions)
-    print("Ridge Regression MAE:",round(ridge_mae, 2))
+        # Baseline
+        baseline_predictions = (test_df["previous_fantasy_points"])
+        baseline_mae = mean_absolute_error(y_test,baseline_predictions)
+        print("Baseline MAE:",round(baseline_mae, 2))
 
-    # Baseline
-    baseline_predictions = (test_df["previous_fantasy_points"])
-    baseline_mae = mean_absolute_error(y_test,baseline_predictions)
-    print("Baseline MAE:",round(baseline_mae, 2))
+        # Random Forest
+        rf_model = RandomForestRegressor(n_estimators=300,max_depth=8,random_state=42)
+        rf_model.fit(X_train,y_train)
+        rf_predictions = (rf_model.predict(X_test))
+        rf_mae = mean_absolute_error(y_test,rf_predictions)
+        print("Random Forest MAE:",round(rf_mae, 2))
 
-    # Random Forest
-    rf_model = RandomForestRegressor(n_estimators=300,max_depth=8,random_state=42)
-    rf_model.fit(X_train,y_train)
-    rf_predictions = (rf_model.predict(X_test))
-    rf_mae = mean_absolute_error(y_test,rf_predictions)
-    print("Random Forest MAE:",round(rf_mae, 2))
-
-    # XGBoost
-    from xgboost import XGBRegressor
-    xgb_model = XGBRegressor(
-    n_estimators=100,
-    max_depth=3,
-    learning_rate=0.05,
-    reg_lambda=5.0,
-    subsample=0.8,
-    random_state=42
-)
-    xgb_model.fit(X_train, y_train)
-    xgb_predictions = xgb_model.predict(X_test)
-    xgb_mae = mean_absolute_error(y_test, xgb_predictions)
-    print("XGBoost MAE:", round(xgb_mae, 2))
-
-    # Simple Ensemble (Linear + XGBoost average)
-    ensemble_predictions = (linear_predictions + xgb_predictions) / 2
-    ensemble_mae = mean_absolute_error(y_test,ensemble_predictions)
-    print("Ensemble MAE:",round(ensemble_mae, 2))
-
-    model_maes = {
-        "Linear Regression": linear_mae,
-        "Ridge Regression": ridge_mae,
-        "Baseline": baseline_mae,
-        "Random Forest": rf_mae,
-        "XGBoost": xgb_mae,
-        "Ensemble": ensemble_mae
-    }
-
-    best_model_name, best_model_mae = min(
-        model_maes.items(),
-        key=lambda x: x[1]
+        # XGBoost
+        from xgboost import XGBRegressor
+        xgb_model = XGBRegressor(
+        n_estimators=100,
+        max_depth=3,
+        learning_rate=0.05,
+        reg_lambda=5.0,
+        subsample=0.8,
+        random_state=42
     )
+        xgb_model.fit(X_train, y_train)
+        xgb_predictions = xgb_model.predict(X_test)
+        xgb_mae = mean_absolute_error(y_test, xgb_predictions)
+        print("XGBoost MAE:", round(xgb_mae, 2))
 
-    print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
+        # Simple Ensemble (Linear + XGBoost average)
+        ensemble_predictions = (linear_predictions + xgb_predictions) / 2
+        ensemble_mae = mean_absolute_error(y_test,ensemble_predictions)
+        print("Ensemble MAE:",round(ensemble_mae, 2))
 
-    validation_results.append({
-        "season": prediction_season,
-        "position": pos_name,
-        "linear_mae": linear_mae,
-        "ridge_mae": ridge_mae,
-        "baseline_mae": baseline_mae,
-        "random_forest_mae": rf_mae,
-        "xgboost_mae": xgb_mae,
-        "ensemble_mae": ensemble_mae,
-        "best_model": best_model_name,
-        "best_mae": best_model_mae
-        })
+        model_maes = {
+            "Linear Regression": linear_mae,
+            "Ridge Regression": ridge_mae,
+            "Baseline": baseline_mae,
+            "Random Forest": rf_mae,
+            "XGBoost": xgb_mae,
+            "Ensemble": ensemble_mae
+        }
+
+        best_model_name, best_model_mae = min(
+            model_maes.items(),
+            key=lambda x: x[1]
+        )
+
+        print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
+
+        validation_results.append({
+            "season": prediction_season,
+            "position": pos_name,
+            "linear_mae": linear_mae,
+            "ridge_mae": ridge_mae,
+            "baseline_mae": baseline_mae,
+            "random_forest_mae": rf_mae,
+            "xgboost_mae": xgb_mae,
+            "ensemble_mae": ensemble_mae,
+            "best_model": best_model_name,
+            "best_mae": best_model_mae
+            })
 
 # ============================================================
 # 11. XGBoost  FEATURE IMPORTANCE
@@ -990,6 +987,22 @@ print(
 
 summary_df = pd.DataFrame(validation_results)
 
+
+print()
+print(summary_df.head())
+
+# average MAE by position
+pos_avg_mae = (
+    summary_df
+    .groupby("position")["best_mae"]
+    .mean()
+    .sort_values()
+)
+
+print()
+print("Average best MAE by position:")
+print(pos_avg_mae)
+
 model_cols = [
     "linear_mae",
     "ridge_mae",
@@ -1064,6 +1077,25 @@ print("=" * 60)
 print("2025 WR PROJECTIONS")
 print("=" * 60)
 
+
+final_models = {}
+
+for pos_name, pos_df in position_dfs.items():
+    final_model = XGBRegressor(
+        n_estimators=100,
+        max_depth=3,
+        learning_rate=0.05,
+        reg_lambda=5.0,
+        subsample=0.8,
+        random_state=42
+    )
+
+    final_model.fit(
+        pos_df[pos_feature_map[pos_name]],
+        pos_df["next_fantasy_points"]
+    )
+
+    final_models[pos_name] = final_model
 
 # Train final ensemble on all historical examples
 
