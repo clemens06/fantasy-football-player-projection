@@ -4,8 +4,16 @@ Mean absolute error in PPR Fantasy points, by prediction season
 
 **Bolded = best model that season.**
 
+### Original WR Baseline projections
 
-### Original WR only model
+*2024*
+Linear Regression: 46.59
+Random Forest: 49.13
+Baseline : 51.54
+
+Notes: Trained on 2021 > 2022 and 2022 > 2023, tested on 2023 > 2024. Only had volume features at the time.
+
+### Completed WR only model
 
 *2020*
 Baseline: 45.40 
@@ -46,6 +54,8 @@ Ridge: **42.36**
 Random Forest: 44.52
 XGBoost: 44.32
 Ensemble: 42.71
+
+Notes: The Linear+XGBoost ensemble wins outright in 3 of 5 seasons; Ridge Regression wins the other 2. Between the two, one of them is the best or second-best performer in every season tested. Random Forest, the model this project started with, never wins a single season once evaluated head-to-head.
 
 ### Initial WR + RB + TE model
 
@@ -261,6 +271,8 @@ Notes: Giant variance in MAE between positions, unlikely to be leakage though, b
 
 # Feature Importance History
 
+Initial note: Feature importance is model-specific, not a property of the data alone. It describes how a particular model used each feature, so it should come from a model that's actually part of the deployed pipeline. I actually used Random Forest for this early on, back when it was still assumed to be the best-performing model, but once the head-to-head validation showed otherwise, importance was recomputed from XGBoost, since XGBoost is one of the two models in the deployed ensemble. As the project develops further, this may shift away from XGBoost as well.
+
 ### Original WR only model > XGBoost
 
 previous_fantasy_points    0.332
@@ -274,6 +286,8 @@ targets                    0.030
 target_share               0.029
 receiving_tds              0.027
 age                        0.020
+
+Initial analysis: previous fantasy points and receiving yards dominate, together accounting for over half the model's decision-making. This makes sense because this is largely a proxy for "how good was this player recently." Two differences from the earlier Random Forest ranking are worth noting: receptions ranks noticeably higher here (0.081 vs. 0.039 in RF), and age ranks noticeably lower (0.020 vs. 0.053). This leads me to believe that different model types can weigh the same features substantially differently even when trained on identical data. target share, added specifically to capture opportunity independent of pace/volume, landed in the middle of the pack and didn't meaningfully move validation MAE on its own, suggesting the model has probably hit a ceiling on what stat-based features can add.
 
 ### Debugged and cleaned WR + RB + TE model Pre final model development > XGBoost
 
@@ -345,3 +359,47 @@ TE feature importance:
 4                      games    0.013016
 3              receiving_tds    0.012917
 16               rushing_tds    0.000000
+
+Notes: I really want to switch this from XGBoost to an auto-selected model because this is pretty presumptive for now. Also, there are a lot of near-negligible features happening, and I think the high levels of redundancy I have included in my features has spurred that. We'll see!
+
+# Projection History
+
+### Debugged and cleaned WR + RB + TE model pre final model development
+Top 10 WR Projections for 2025
+     player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
+   Ja'Marr Chase     17      175         127             1708              403.00 24.835044                275.433533
+Justin Jefferson     17      154         103             1533              317.48 25.544148                274.811646
+      Puka Nacua     11      106          79              990              206.60 23.592060                264.218689
+Brian Thomas Jr.     17      133          87             1282              284.00 22.231348                263.394623
+    Drake London     17      158         100             1271              280.80 23.438741                262.450439
+     Tee Higgins     12      109          73              911              222.10 25.952088                245.815887
+      A.J. Brown     13       97          67             1079              216.90 27.504449                244.695190
+     CeeDee Lamb     15      152         101             1194              263.40 25.733060                243.011658
+   Davante Adams     14      141          85             1063              241.30 32.019165                234.972305
+   Ladd McConkey     16      112          82             1149              240.90 23.137577                227.379623
+
+Top 10 RB Projections for 2025
+player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
+      Jahmyr Gibbs     17       63          52              517               362.9 22.784394                245.141296
+       Chase Brown     16       65          54              360               255.0 24.780287                239.530273
+     De'Von Achane     17       87          78              592               299.9 23.216975                231.351868
+       Josh Jacobs     17       43          36              342               293.1 26.885695                223.897171
+    Kyren Williams     16       40          34              182               272.1 24.347707                221.317490
+        James Cook     16       38          32              258               266.7 25.267625                221.310104
+       Breece Hall     16       76          57              483               240.9 23.586585                217.814499
+Kenneth Walker III     11       53          46              299               181.2 24.197125                217.068863
+      Alvin Kamara     14       89          68              543               265.3 29.437372                215.895416
+         Joe Mixon     14       52          36              309               240.5 28.438056                215.797409
+
+Top 10 TE Projections for 2025
+  player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
+ Trey McBride     16      147         111             1146               243.8 25.108830                186.707169
+ Brock Bowers     17      153         112             1194               262.7 22.050650                180.943726
+  Sam LaPorta     16       83          60              726               174.6 23.967146                175.692444
+George Kittle     15       94          78             1106               236.6 31.227926                170.571930
+  Jonnu Smith     17      111          88              884               222.3 29.360712                158.447586
+   Cade Otton     14       87          59              600               140.6 25.713895                148.609238
+ Tucker Kraft     17       70          50              707               163.3 24.158795                143.311371
+   Kyle Pitts     17       74          47              602               131.2 24.235455                134.558624
+  David Njoku     11       97          64              505               148.5 28.476386                133.231583
+ Travis Kelce     16      133          97              823               195.4 35.238877                130.694077

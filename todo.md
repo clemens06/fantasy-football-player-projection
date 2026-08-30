@@ -3,9 +3,9 @@
 ##  Need to do (in order of priority)
 - Edit README
 - Add QBs
-- Get individuals MAEs for each position group
 - Add MORE DATA 
 - Get better understanding of XGBRegressor
+LEARN MORE SQL
 
 ## Project Ideas (in order of priority)
 - Get MAEs for individual positions for working on improving each model by position
