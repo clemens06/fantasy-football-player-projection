@@ -833,118 +833,35 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
 
     print ()
 
-    # --------------------------------------------------------
     # Linear Regression
-    # --------------------------------------------------------
-
     linear_model = LinearRegression()
 
-    linear_model.fit(
-        X_train,
-        y_train
-    )
+    linear_model.fit(X_train, y_train)
+    linear_predictions = (linear_model.predict(X_test))
+    linear_mae = mean_absolute_error(y_test,linear_predictions)
+    print("Linear Regression MAE:", round(linear_mae, 2))
 
-    linear_predictions = (
-        linear_model.predict(X_test)
-    )
-
-    linear_mae = mean_absolute_error(
-        y_test,
-        linear_predictions
-    )
-
-    print(
-        "Linear Regression MAE:",
-        round(linear_mae, 2)
-    )
-
-    # --------------------------------------------------------
     # Ridge Regression
-    # --------------------------------------------------------
-
     ridge_model = Ridge(alpha=1.0)
+    ridge_model.fit(X_train,y_train)
+    ridge_predictions = (ridge_model.predict(X_test))
+    ridge_mae = mean_absolute_error(y_test,ridge_predictions)
+    print("Ridge Regression MAE:",round(ridge_mae, 2))
 
-    ridge_model.fit(
-        X_train,
-        y_train
-    )
-
-    ridge_predictions = (
-        ridge_model.predict(X_test)
-    )
-
-    ridge_mae = mean_absolute_error(
-        y_test,
-        ridge_predictions
-    )
-
-    print(
-        "Ridge Regression MAE:",
-        round(ridge_mae, 2)
-    )
-
-    # --------------------------------------------------------
     # Baseline
-    # --------------------------------------------------------
+    baseline_predictions = (test_df["previous_fantasy_points"])
+    baseline_mae = mean_absolute_error(y_test,baseline_predictions)
+    print("Baseline MAE:",round(baseline_mae, 2))
 
-    baseline_predictions = (
-        test_df[
-            "previous_fantasy_points"
-        ]
-    )
-
-
-    baseline_mae = mean_absolute_error(
-        y_test,
-        baseline_predictions
-    )
-
-
-    print(
-        "Baseline MAE:",
-        round(baseline_mae, 2)
-    )
-
-
-    # --------------------------------------------------------
     # Random Forest
-    # --------------------------------------------------------
+    rf_model = RandomForestRegressor(n_estimators=300,max_depth=8,random_state=42)
+    rf_model.fit(X_train,y_train)
+    rf_predictions = (rf_model.predict(X_test))
+    rf_mae = mean_absolute_error(y_test,rf_predictions)
+    print("Random Forest MAE:",round(rf_mae, 2))
 
-    rf_model = RandomForestRegressor(
-        n_estimators=300,
-        max_depth=8,
-        random_state=42
-    )
-
-
-    rf_model.fit(
-        X_train,
-        y_train
-    )
-
-
-    rf_predictions = (
-        rf_model.predict(X_test)
-    )
-
-
-    rf_mae = mean_absolute_error(
-        y_test,
-        rf_predictions
-    )
-
-
-    print(
-        "Random Forest MAE:",
-        round(rf_mae, 2)
-    )
-
-    # --------------------------------------------------------
     # XGBoost
-    # --------------------------------------------------------
-
     from xgboost import XGBRegressor
-
     xgb_model = XGBRegressor(
     n_estimators=100,
     max_depth=3,
@@ -958,23 +875,10 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
     xgb_mae = mean_absolute_error(y_test, xgb_predictions)
     print("XGBoost MAE:", round(xgb_mae, 2))
 
-    # --------------------------------------------------------
     # Simple Ensemble (Linear + XGBoost average)
-    # --------------------------------------------------------
-
-    ensemble_predictions = (
-        linear_predictions + xgb_predictions
-    ) / 2
-
-    ensemble_mae = mean_absolute_error(
-        y_test,
-        ensemble_predictions
-    )
-
-    print(
-        "Ensemble MAE:",
-        round(ensemble_mae, 2)
-    )
+    ensemble_predictions = (linear_predictions + xgb_predictions) / 2
+    ensemble_mae = mean_absolute_error(y_test,ensemble_predictions)
+    print("Ensemble MAE:",round(ensemble_mae, 2))
 
     model_maes = {
         "Linear Regression": linear_mae,
@@ -990,8 +894,20 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         key=lambda x: x[1]
     )
 
-    
     print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
+
+    validation_results.append({
+        "season": prediction_season,
+        "position": pos_name,
+        "linear_mae": linear_mae,
+        "ridge_mae": ridge_mae,
+        "baseline_mae": baseline_mae,
+        "random_forest_mae": rf_mae,
+        "xgboost_mae": xgb_mae,
+        "ensemble_mae": ensemble_mae,
+        "best_model": best_model_name,
+        "best_mae": best_model_mae
+        })
 
 # ============================================================
 # 11. XGBoost  FEATURE IMPORTANCE
@@ -1002,104 +918,33 @@ print("=" * 60)
 print("XGBoost FEATURE IMPORTANCE")
 print("=" * 60)
 
+position_models = {}
 
-wr_final_model = XGBRegressor(
-    n_estimators=100,
-    max_depth=3,
-    learning_rate=0.05,
-    reg_lambda=5.0,
-    subsample=0.8,
-    random_state=42
-)
-
-rb_final_model = XGBRegressor(
-    n_estimators=100,
-    max_depth=3,
-    learning_rate=0.05,
-    reg_lambda=5.0,
-    subsample=0.8,
-    random_state=42
-)
-
-te_final_model = XGBRegressor(
-    n_estimators=100,
-    max_depth=3,
-    learning_rate=0.05,
-    reg_lambda=5.0,
-    subsample=0.8,
-    random_state=42
-)
-
-wr_final_model.fit(
-    wr_model_df[pos_feature_map["WR"]],
-    wr_model_df["next_fantasy_points"]
-)
-
-rb_final_model.fit(
-    rb_model_df[pos_feature_map["RB"]],
-    rb_model_df["next_fantasy_points"]
-)
-
-te_final_model.fit(
-    te_model_df[pos_feature_map["TE"]],
-    te_model_df["next_fantasy_points"]
-)
-
-
-wr_feature_importance = pd.DataFrame({
-    "feature": pos_feature_map[pos_name],
-    "importance":
-        wr_final_model.feature_importances_
-})
-
-
-rb_feature_importance = pd.DataFrame({
-    "feature": pos_feature_map[pos_name],
-    "importance":
-        rb_final_model.feature_importances_
-})
-
-te_feature_importance = pd.DataFrame({
-    "feature": pos_feature_map[pos_name],
-    "importance":
-        te_final_model.feature_importances_
-})
-
-
-wr_feature_importance = (
-    wr_feature_importance
-    .sort_values(
-        "importance",
-        ascending=False
+for pos_name, pos_df in position_dfs.items():
+    model = XGBRegressor(
+        n_estimators=100,
+        max_depth=3,
+        learning_rate=0.05,
+        reg_lambda=5.0,
+        subsample=0.8,
+        random_state=42
     )
-)
-
-rb_feature_importance = (
-    rb_feature_importance
-    .sort_values(
-        "importance",
-        ascending=False
+    model.fit(
+        pos_df[pos_feature_map[pos_name]],
+        pos_df["next_fantasy_points"]
     )
-)
+    position_models[pos_name] = model
 
-te_feature_importance = (
-    te_feature_importance
-    .sort_values(
-        "importance",
-        ascending=False
-    )
-)
+for pos_name, model in position_models.items():
+    importance_df = pd.DataFrame({
+        "feature": pos_feature_map[pos_name],
+        "importance": model.feature_importances_
+    }).sort_values("importance", ascending=False)
 
-print()
-print("WR Feature Importance:")
-print(wr_feature_importance)
-print()
-print("RB Feature Importance:")
-print(rb_feature_importance)
-print()
-print("TE Feature Importance:")
-print(te_feature_importance)
-
+    
+    print()
+    print(f"{pos_name} feature importance:")
+    print(importance_df.head(20))
 
 # ============================================================
 # 12. MISSING VALUES
@@ -1110,34 +955,12 @@ print("=" * 60)
 print("MISSING VALUES")
 print("=" * 60)
 
-
-print(
-    wr_model_df[pos_feature_map[pos_name]]
-    .isna()
-    .sum()
-)
-
-print(
-    rb_model_df[pos_feature_map[pos_name]]
-    .isna()
-    .sum()
-)
-
-print(
-    te_model_df[pos_feature_map[pos_name]]
-    .isna()
-    .sum()
-)
-
-validation_results.append({
-        "season": prediction_season,
-        "linear_mae": linear_mae,
-        "ridge_mae": ridge_mae,
-        "baseline_mae": baseline_mae,
-        "random_forest_mae": rf_mae,
-        "xgboost_mae": xgb_mae,
-        "ensemble_mae": ensemble_mae
-    })
+for pos_name, pos_df in position_dfs.items():
+    missing = pos_df[pos_feature_map[pos_name]].isna().sum()
+    nonzero = missing[missing > 0]
+    if not nonzero.empty:
+        print(f"{pos_name}")
+        print(nonzero)
 
 # ============================================================
 # 13. MODEL SUMMARY
@@ -1191,45 +1014,45 @@ print("Average MAE:", round(overall_best_mae, 2))
 print(avg_mae_by_model.round(3))
 
 
-# ============================================================
-# 14. PLAYER DATA CHECK
-# ============================================================
+# # ============================================================
+# # 14. PLAYER DATA CHECK
+# # ============================================================
 
-print()
+# print()
 
-print(
-    nfl_df[
-        [
-            "player_id",
-            "player_name"
-        ]
-    ]
-    .drop_duplicates()
-    .head(20)
-)
+# print(
+#     nfl_df[
+#         [
+#             "player_id",
+#             "player_name"
+#         ]
+#     ]
+#     .drop_duplicates()
+#     .head(20)
+# )
 
-print(
-    nfl_df["player_id"].dtype
-)
-
-
-print(
-    nfl_df[
-        [
-            "player_id",
-            "player_name",
-            "player_display_name"
-        ]
-    ]
-    .drop_duplicates()
-    .head(30)
-)
+# print(
+#     nfl_df["player_id"].dtype
+# )
 
 
-print(
-    "\nUnique players:",
-    nfl_df["player_id"].nunique()
-)
+# print(
+#     nfl_df[
+#         [
+#             "player_id",
+#             "player_name",
+#             "player_display_name"
+#         ]
+#     ]
+#     .drop_duplicates()
+#     .head(30)
+# )
+
+
+# print(
+#     "\nUnique players:",
+#     nfl_df["player_id"].nunique()
+# )
 
 
 # ============================================================
