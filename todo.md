@@ -7,6 +7,7 @@
 - Add QBs
 - Get individuals MAEs for each position group
 - Add MORE DATA 
+- Get better understanding of XGBRegressor
 
 ## Project Ideas (in order of priority)
 - Weighted ensemble 
@@ -14,3 +15,4 @@
 - Uncertainty estimates (ranges as opposed to exact numbers)
 - Dynasty trade value tool
 - Team role features
+- Self tuning XGB

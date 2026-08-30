@@ -118,12 +118,6 @@ age                        0.020
 
 previous fantasy points and receiving yards still dominate, together accounting for over half the model's decision-making. This makes sense because this is largely a proxy for "how good was this player recently." Two differences from the earlier Random Forest ranking are worth noting: receptions ranks noticeably higher here (0.081 vs. 0.039 in RF), and age ranks noticeably lower (0.020 vs. 0.053). This leads me to believe that different model types can weigh the same features substantially differently even when trained on identical data. target share, added specifically to capture opportunity independent of pace/volume, landed in the middle of the pack and didn't meaningfully move validation MAE on its own, suggesting the model has probably hit a ceiling on what stat-based features can add.
 
-## What I would build next
-- Team role/hierarchy features (WR1/2/3 on their team by targets) because exact numbers are probably less stable than role
-- Uncertainty estimates on each projection (range rather than exact number)
-- Add RB and TE
-- Dynasty trade value tool built on these projections + an age curve rather than treating rankings as point values
-
 ## Repo structure
 
 data/raw/           weekly stats CSVs (2018–2024) and player bio data

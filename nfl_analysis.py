@@ -800,67 +800,38 @@ print("=" * 60)
 print("CROSS-SEASON MODEL VALIDATION")
 print("=" * 60)
 
+pos_feature_map = {
+    "WR": wr_features,
+    "RB": rb_features,
+    "TE": te_features
+}
+
+position_dfs = {
+    "WR": wr_model_df,
+    "RB": rb_model_df,
+    "TE": te_model_df
+}
 
 validation_results = []
 
-wr_model_df = wr_season.merge(
-    future_wr,
-    on=["next_season", "player_id"],
-    how="inner"
-)
-wr_model_df["previous_fantasy_points"] = wr_model_df["fantasy_points_ppr"]
-
-rb_model_df = rb_season.merge(
-    future_rb,
-    on=["next_season", "player_id"],
-    how="inner"
-)
-rb_model_df["previous_fantasy_points"] = rb_model_df["fantasy_points_ppr"]
-
-te_model_df = te_season.merge(
-    future_te,
-    on=["next_season", "player_id"],
-    how="inner"
-)
-te_model_df["previous_fantasy_points"] = te_model_df["fantasy_points_ppr"]
-
 for prediction_season in [2020, 2021, 2022, 2023, 2024]:
 
-    pos_features = {
-        "WR": wr_features,
-        "RB": rb_features,
-        "TE": te_features
-    }
+    for pos_name, pos_df in position_dfs.items():
+        train_df = pos_df[pos_df["next_season"] < prediction_season].copy()
+        test_df = pos_df[pos_df["next_season"] == prediction_season].copy()
 
-    for pos_name, pos_df in [
-    ("WR", wr_model_df),
-    ("RB", rb_model_df),
-    ("TE", te_model_df)
-    ]:
-        
-        train_df = pos_df[pos_df["next_season"] < 2024]
-        test_df = pos_df[pos_df["next_season"] == 2024]
+        X_train = train_df[pos_feature_map[pos_name]]
+        y_train = train_df["next_fantasy_points"]
 
-    X_train = train_df[pos_features[pos_name]]
-    y_train = train_df["next_fantasy_points"]
-    X_test = test_df[pos_features[pos_name]]
-    y_test = test_df["next_fantasy_points"]
+        X_test = test_df[pos_feature_map[pos_name]]
+        y_test = test_df["next_fantasy_points"]
 
-    print()
-    print(
-        f"Predicting: {prediction_season}"
-    )
+        print()
+        print(f"Predicting: {prediction_season} | Position: {pos_name}")
+        print("Training:", X_train.shape)
+        print("Testing:", X_test.shape)
 
-    print(
-        "Training:",
-        X_train.shape
-    )
-
-    print(
-        "Testing:",
-        X_test.shape
-    )
-
+    print ()
 
     # --------------------------------------------------------
     # Linear Regression
@@ -1060,36 +1031,36 @@ te_final_model = XGBRegressor(
 )
 
 wr_final_model.fit(
-    wr_model_df[pos_features["WR"]],
+    wr_model_df[pos_feature_map["WR"]],
     wr_model_df["next_fantasy_points"]
 )
 
 rb_final_model.fit(
-    rb_model_df[pos_features["RB"]],
+    rb_model_df[pos_feature_map["RB"]],
     rb_model_df["next_fantasy_points"]
 )
 
 te_final_model.fit(
-    te_model_df[pos_features["TE"]],
+    te_model_df[pos_feature_map["TE"]],
     te_model_df["next_fantasy_points"]
 )
 
 
 wr_feature_importance = pd.DataFrame({
-    "feature": pos_features[pos_name],
+    "feature": pos_feature_map[pos_name],
     "importance":
         wr_final_model.feature_importances_
 })
 
 
 rb_feature_importance = pd.DataFrame({
-    "feature": pos_features[pos_name],
+    "feature": pos_feature_map[pos_name],
     "importance":
         rb_final_model.feature_importances_
 })
 
 te_feature_importance = pd.DataFrame({
-    "feature": pos_features[pos_name],
+    "feature": pos_feature_map[pos_name],
     "importance":
         te_final_model.feature_importances_
 })
@@ -1141,19 +1112,19 @@ print("=" * 60)
 
 
 print(
-    wr_model_df[pos_features[pos_name]]
+    wr_model_df[pos_feature_map[pos_name]]
     .isna()
     .sum()
 )
 
 print(
-    rb_model_df[pos_features[pos_name]]
+    rb_model_df[pos_feature_map[pos_name]]
     .isna()
     .sum()
 )
 
 print(
-    te_model_df[pos_features[pos_name]]
+    te_model_df[pos_feature_map[pos_name]]
     .isna()
     .sum()
 )
@@ -1191,7 +1162,7 @@ print(
 )
 
 print(
-    f"Features: {len(pos_features[pos_name])}"
+    f"Features: {len(pos_feature_map[pos_name])}"
 )
 
 summary_df = pd.DataFrame(validation_results)
@@ -1276,7 +1247,7 @@ print("=" * 60)
 final_linear_model = LinearRegression()
 
 final_linear_model.fit(
-    wr_model_df[pos_features["WR"]],
+    wr_model_df[pos_feature_map["WR"]],
     wr_model_df["next_fantasy_points"]
 )
 
@@ -1290,7 +1261,7 @@ final_xgb_model = XGBRegressor(
 )
 
 final_xgb_model.fit(
-    wr_model_df[pos_features["WR"]],
+    wr_model_df[pos_feature_map["WR"]],
     wr_model_df["next_fantasy_points"]
 )
 
@@ -1324,11 +1295,11 @@ wr_projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    wr_projection_df[pos_features["WR"]]
+    wr_projection_df[pos_feature_map["WR"]]
 )
 
 xgb_proj = final_xgb_model.predict(
-    wr_projection_df[pos_features["WR"]]
+    wr_projection_df[pos_feature_map["WR"]]
 )
 
 wr_projection_df[
@@ -1401,11 +1372,11 @@ rb_projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    rb_projection_df[pos_features["RB"]]
+    rb_projection_df[pos_feature_map["RB"]]
 )
 
 xgb_proj = final_xgb_model.predict(
-    rb_projection_df[pos_features["RB"]]
+    rb_projection_df[pos_feature_map["RB"]]
 )
 
 rb_projection_df[
@@ -1478,11 +1449,11 @@ te_projection_df["age"] = (
 # Generate projections
 
 linear_proj = final_linear_model.predict(
-    te_projection_df[pos_features["TE"]]
+    te_projection_df[pos_feature_map["TE"]]
 )
 
 xgb_proj = final_xgb_model.predict(
-    te_projection_df[pos_features["TE"]]
+    te_projection_df[pos_feature_map["TE"]]
 )
 
 te_projection_df[
@@ -1616,13 +1587,13 @@ wr_test_df = wr_model_df[
 ]
 
 
-wr_X_train = wr_train_df[pos_features["WR"]]
+wr_X_train = wr_train_df[pos_feature_map["WR"]]
 
 wr_y_train = wr_train_df[
     "next_fantasy_points"
 ]
 
-wr_X_test = wr_test_df[pos_features["WR"]]
+wr_X_test = wr_test_df[pos_feature_map["WR"]]
 
 wr_y_test = wr_test_df[
     "next_fantasy_points"
@@ -1637,13 +1608,13 @@ rb_test_df = rb_model_df[
 ]
 
 
-rb_X_train = rb_train_df[pos_features["RB"]]
+rb_X_train = rb_train_df[pos_feature_map["RB"]]
 
 rb_y_train = rb_train_df[
     "next_fantasy_points"
 ]
 
-rb_X_test = rb_test_df[pos_features["RB"]]
+rb_X_test = rb_test_df[pos_feature_map["RB"]]
 
 rb_y_test = rb_test_df[
     "next_fantasy_points"
@@ -1658,13 +1629,13 @@ te_test_df = te_model_df[
 ]
 
 
-te_X_train = te_train_df[pos_features["TE"]]
+te_X_train = te_train_df[pos_feature_map["TE"]]
 
 te_y_train = te_train_df[
     "next_fantasy_points"
 ]
 
-te_X_test = te_test_df[pos_features["TE"]]
+te_X_test = te_test_df[pos_feature_map["TE"]]
 
 te_y_test = te_test_df[
     "next_fantasy_points"
