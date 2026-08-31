@@ -1,6 +1,6 @@
 # To Do
 
-##  Need to do (in order of priority)
+##  Need to do
 - Add QBs
 - Add MORE DATA 
 - Get better understanding of XGBRegressor

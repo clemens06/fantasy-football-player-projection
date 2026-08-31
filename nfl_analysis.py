@@ -487,6 +487,68 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
             "best_mae": best_model_mae
             })
 
+#Tuning Xgboost
+print()
+print("=" * 60)
+print("XGBoost HYPERPARAMETER TUNING")
+print("=" * 60)
+
+# Use 2024 validation split for tuning
+tuning_results = []
+
+for pos_name, pos_df in position_dfs.items():
+    train_df = pos_df[pos_df["next_season"] < 2024].copy()
+    test_df = pos_df[pos_df["next_season"] == 2024].copy()
+
+    X_train = train_df[pos_feature_map[pos_name]]
+    y_train = train_df["next_fantasy_points"]
+
+    X_test = test_df[pos_feature_map[pos_name]]
+    y_test = test_df["next_fantasy_points"]
+
+    print()
+    print(f"Tuning XGBoost for {pos_name}...")
+
+    best_mae = float('inf')
+    best_params = {}
+
+    for max_depth in [2, 3, 4, 5, 6]:
+        for learning_rate in [0.01, 0.05, 0.1, 0.15]:
+            for reg_lambda in [0.5, 1.0, 5.0, 10.0]:
+                model = XGBRegressor(
+                    n_estimators=100,
+                    max_depth=max_depth,
+                    learning_rate=learning_rate,
+                    reg_lambda=reg_lambda,
+                    subsample=0.8,
+                    random_state=42,
+                    verbosity=0
+                )
+
+                model.fit(X_train, y_train, verbose=False)
+                preds = model.predict(X_test)
+                mae = mean_absolute_error(y_test, preds)
+
+                if mae < best_mae:
+                    best_mae = mae
+                    best_params = {
+                        "max_depth": max_depth,
+                        "learning_rate": learning_rate,
+                        "reg_lambda": reg_lambda,
+                        "mae": mae
+                    }
+
+    print(f"{pos_name} best params:")
+    print(f"  max_depth: {best_params['max_depth']}")
+    print(f"  learning_rate: {best_params['learning_rate']}")
+    print(f"  reg_lambda: {best_params['reg_lambda']}")
+    print(f"  MAE: {round(best_params['mae'], 2)}")
+
+    tuning_results.append({
+        "position": pos_name,
+        **best_params
+    })
+
 # ============================================================
 # 9. XGBoost  FEATURE IMPORTANCE
 # ============================================================
