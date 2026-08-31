@@ -397,6 +397,7 @@ pos_feature_map = {"WR": wr_features,"RB": rb_features,"TE": te_features}
 position_dfs = {"WR": wr_model_df,"RB": rb_model_df,"TE": te_model_df}
 
 validation_results = []
+tuning_results = []
 
 for prediction_season in [2020, 2021, 2022, 2023, 2024]:
     for pos_name, pos_df in position_dfs.items():
@@ -413,6 +414,45 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         print(f"Predicting: {prediction_season} | Position: {pos_name}")
         print("Training:", X_train.shape)
         print("Testing:", X_test.shape)
+
+ # Debug: check for NaN
+        nan_count_train = X_train.isna().sum().sum()
+        nan_count_test = X_test.isna().sum().sum()
+        print(f"NaN in X_train: {nan_count_train}, NaN in X_test: {nan_count_test}")
+        
+        if nan_count_train > 0 or nan_count_test > 0:
+            print(f"WARNING: {pos_name} {prediction_season} has NaN values!")
+            print(X_train.isna().sum()[X_train.isna().sum() > 0])
+            continue
+
+# Tune XGBoost for this season-position combo
+        best_xgb_mae = float('inf')
+        best_xgb_params = {}
+
+        for max_depth in [2, 3, 4, 5]:
+            for learning_rate in [0.01, 0.05, 0.1]:
+                for reg_lambda in [0.5, 1.0, 5.0]:
+                    model = XGBRegressor(
+                        n_estimators=100,
+                        max_depth=max_depth,
+                        learning_rate=learning_rate,
+                        reg_lambda=reg_lambda,
+                        subsample=0.8,
+                        random_state=42,
+                        verbosity=0
+                    )
+
+                    model.fit(X_train, y_train, verbose=False)
+                    preds = model.predict(X_test)
+                    mae = mean_absolute_error(y_test, preds)
+
+                    if mae < best_xgb_mae:
+                        best_xgb_mae = mae
+                        best_xgb_params = {
+                            "max_depth": max_depth,
+                            "learning_rate": learning_rate,
+                            "reg_lambda": reg_lambda
+                        }
 
         # Baseline
         baseline_predictions = (test_df["previous_fantasy_points"])
@@ -440,15 +480,14 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         rf_mae = mean_absolute_error(y_test,rf_predictions)
         print("Random Forest MAE:",round(rf_mae, 2))
 
-        # XGBoost
-        from xgboost import XGBRegressor
+         # XGBoost (with tuned params)
         xgb_model = XGBRegressor(
-        n_estimators=100,
-        max_depth=3,
-        learning_rate=0.05,
-        reg_lambda=5.0,
-        subsample=0.8,
-        random_state=42
+            n_estimators=100,
+            max_depth=best_xgb_params['max_depth'],
+            learning_rate=best_xgb_params['learning_rate'],
+            reg_lambda=best_xgb_params['reg_lambda'],
+            subsample=0.8,
+            random_state=42
         )
 
         xgb_model.fit(X_train, y_train)
@@ -487,67 +526,47 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
             "best_mae": best_model_mae
             })
 
+        tuning_results.append({
+            "season": prediction_season,
+            "position": pos_name,
+            "xgb_max_depth": best_xgb_params['max_depth'],
+            "xgb_learning_rate": best_xgb_params['learning_rate'],
+            "xgb_reg_lambda": best_xgb_params['reg_lambda'],
+            "xgb_mae": best_xgb_mae
+        })
+
 #Tuning Xgboost
 print()
 print("=" * 60)
 print("XGBoost HYPERPARAMETER TUNING")
 print("=" * 60)
 
-# Use 2024 validation split for tuning
-tuning_results = []
+tuning_df = pd.DataFrame(tuning_results)
+print(tuning_df.to_string(index=False))
 
-for pos_name, pos_df in position_dfs.items():
-    train_df = pos_df[pos_df["next_season"] < 2024].copy()
-    test_df = pos_df[pos_df["next_season"] == 2024].copy()
+# Get best params for final model (average across seasons)
+best_final_params = {}
+for pos_name in position_dfs.keys():
+    pos_tuning = tuning_df[tuning_df["position"] == pos_name]
+    
+    if len(pos_tuning) > 0:
+        best_final_params[pos_name] = {
+            "max_depth": int(pos_tuning["xgb_max_depth"].mode()[0]) if len(pos_tuning["xgb_max_depth"].mode()) > 0 else int(pos_tuning["xgb_max_depth"].mean()),
+            "learning_rate": pos_tuning["xgb_learning_rate"].mean(),
+            "reg_lambda": pos_tuning["xgb_reg_lambda"].mean()
+        }
+    else:
+        # Fallback to defaults if no tuning data
+        best_final_params[pos_name] = {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "reg_lambda": 5.0
+        }
 
-    X_train = train_df[pos_feature_map[pos_name]]
-    y_train = train_df["next_fantasy_points"]
-
-    X_test = test_df[pos_feature_map[pos_name]]
-    y_test = test_df["next_fantasy_points"]
-
-    print()
-    print(f"Tuning XGBoost for {pos_name}...")
-
-    best_mae = float('inf')
-    best_params = {}
-
-    for max_depth in [2, 3, 4, 5, 6]:
-        for learning_rate in [0.01, 0.05, 0.1, 0.15]:
-            for reg_lambda in [0.5, 1.0, 5.0, 10.0]:
-                model = XGBRegressor(
-                    n_estimators=100,
-                    max_depth=max_depth,
-                    learning_rate=learning_rate,
-                    reg_lambda=reg_lambda,
-                    subsample=0.8,
-                    random_state=42,
-                    verbosity=0
-                )
-
-                model.fit(X_train, y_train, verbose=False)
-                preds = model.predict(X_test)
-                mae = mean_absolute_error(y_test, preds)
-
-                if mae < best_mae:
-                    best_mae = mae
-                    best_params = {
-                        "max_depth": max_depth,
-                        "learning_rate": learning_rate,
-                        "reg_lambda": reg_lambda,
-                        "mae": mae
-                    }
-
-    print(f"{pos_name} best params:")
-    print(f"  max_depth: {best_params['max_depth']}")
-    print(f"  learning_rate: {best_params['learning_rate']}")
-    print(f"  reg_lambda: {best_params['reg_lambda']}")
-    print(f"  MAE: {round(best_params['mae'], 2)}")
-
-    tuning_results.append({
-        "position": pos_name,
-        **best_params
-    })
+print()
+print("Best params for final model (by position):")
+for pos_name, params in best_final_params.items():
+    print(f"{pos_name}: {params}")
 
 # ============================================================
 # 9. XGBoost  FEATURE IMPORTANCE
@@ -563,9 +582,9 @@ position_models = {}
 for pos_name, pos_df in position_dfs.items():
     model = XGBRegressor(
         n_estimators=100,
-        max_depth=3,
-        learning_rate=0.05,
-        reg_lambda=5.0,
+        max_depth=best_final_params[pos_name]['max_depth'],
+        learning_rate=best_final_params[pos_name]['learning_rate'],
+        reg_lambda=best_final_params[pos_name]['reg_lambda'],
         subsample=0.8,
         random_state=42
     )
@@ -641,9 +660,9 @@ final_models = {}
 for pos_name, pos_df in position_dfs.items():
     final_model = XGBRegressor(
         n_estimators=100,
-        max_depth=3,
-        learning_rate=0.05,
-        reg_lambda=5.0,
+        max_depth=best_final_params[pos_name]['max_depth'],
+        learning_rate=best_final_params[pos_name]['learning_rate'],
+        reg_lambda=best_final_params[pos_name]['reg_lambda'],
         subsample=0.8,
         random_state=42
     )

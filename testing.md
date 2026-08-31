@@ -305,6 +305,10 @@ ensemble_mae         41.160
 
 Notes: Apologies for the formattings inconsistencies. This section is much better organized and readable so will stick with this from here. No major differences from previous section, tight end still concerns me but as of now haven't found whatever problem there may be.
 
+### FINAL FINAL WR + RB TE model
+
+Notes: No difference from previous results
+
 # Feature Importance History
 
 Initial note: Feature importance is model-specific, not a property of the data alone. It describes how a particular model used each feature, so it should come from a model that's actually part of the deployed pipeline. I actually used Random Forest for this early on, back when it was still assumed to be the best-performing model, but once the head-to-head validation showed otherwise, importance was recomputed from XGBoost, since XGBoost is one of the two models in the deployed ensemble. As the project develops further, this may shift away from XGBoost as well.
@@ -471,6 +475,78 @@ receiving_yards_per_game    0.029436
 
 Notes: Same as before honestly. I should investigate the discrepancies between importance in features such as fantasy points per game and previous fantasy points between positions, since those are all very high importance features.
 
+### TUNED WR + RB + TE model
+
+WR feature importance:
+                 feature  importance
+ previous_fantasy_points    0.268278
+         receiving_yards    0.171867
+              receptions    0.124114
+ fantasy_points_per_game    0.088632
+     receptions_per_game    0.029588
+receiving_yards_per_game    0.029016
+        targets_per_game    0.026607
+            prev_2yr_avg    0.023161
+            target_share    0.021400
+                 targets    0.020139
+           receiving_tds    0.018141
+                     age    0.017455
+              catch_rate    0.015956
+   fantasy_points_change    0.015845
+         post_30_decline    0.014985
+    rushing_tds_per_game    0.013762
+     yards_per_reception    0.013368
+  rushing_yards_per_game    0.013027
+        yards_per_target    0.012975
+        carries_per_game    0.011949
+
+RB feature importance:
+                 feature  importance
+ fantasy_points_per_game    0.265248
+ previous_fantasy_points    0.133970
+           rushing_yards    0.107215
+              receptions    0.037295
+         receiving_yards    0.034383
+  rushing_yards_per_game    0.029863
+            target_share    0.027190
+             rushing_tds    0.025242
+        targets_per_game    0.024572
+                 carries    0.024013
+                     age    0.024007
+            prev_2yr_avg    0.023713
+         post_30_decline    0.023230
+   fantasy_points_change    0.021668
+                   games    0.021074
+     receptions_per_game    0.020823
+        yards_per_target    0.019561
+               age_curve    0.019395
+        carries_per_game    0.019279
+receiving_yards_per_game    0.019123
+
+TE feature importance:
+                 feature  importance
+ previous_fantasy_points    0.243705
+        targets_per_game    0.091690
+                 targets    0.067489
+ fantasy_points_per_game    0.066145
+         receiving_yards    0.050563
+receiving_yards_per_game    0.047701
+            target_share    0.041887
+  rushing_yards_per_game    0.039804
+         prime_age_bonus    0.034569
+        yards_per_target    0.031339
+           rushing_yards    0.030006
+            prev_2yr_avg    0.029923
+              receptions    0.029647
+     receptions_per_game    0.029060
+                 carries    0.025984
+   fantasy_points_change    0.023824
+                     age    0.021323
+     yards_per_reception    0.020355
+              catch_rate    0.018285
+               age_curve    0.016440
+Notes: No change to WR or RB importances but LOTS of change to TE importances with the new tuning. These changes alone propelled George Kittle from TE4 to TE1 in the rankings.
+
 # Projection History
 
 ### Debugged and cleaned WR + RB + TE model pre final model development
@@ -588,3 +664,99 @@ Dalton Kincaid     13       75          44              448               100.8 
  Isaiah Likely     15       58          42              477               123.7 24.703628                 89.938690
 
 Notes: Moved to top 20 to get a better picture. These rankings generally feels like a substantial improvement. Addition and improvement of age features do a better job of rewarding consistency while recognizing the possibility of young players having breakout seasons, which can be seen in players like Bijan Robinson, Brock Bowers, Brian Thomas Jr., and Jahmyr Gibbs having high predictions.
+
+### FINAL FINAL WR + RB + TE model
+
+Top 20 WR Projections for 2025
+        player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
+   Justin Jefferson     17      154         103             1533              317.48 25.544148                251.698074
+      Ja'Marr Chase     17      175         127             1708              403.00 24.835044                242.588943
+   Brian Thomas Jr.     17      133          87             1282              284.00 22.231348                239.644180
+       Drake London     17      158         100             1271              280.80 23.438741                229.553696
+      Ladd McConkey     16      112          82             1149              240.90 23.137577                228.451782
+ Jaxon Smith-Njigba     17      137         100             1130              253.00 22.877481                227.196030
+        Tee Higgins     12      109          73              911              222.10 25.952088                227.123322
+        CeeDee Lamb     15      152         101             1194              263.40 25.733060                222.337494
+  Amon-Ra St. Brown     17      141         115             1263              316.18 25.188227                221.796951
+     Jordan Addison     15       99          63              875              212.50 22.926762                219.452728
+         A.J. Brown     13       97          67             1079              216.90 27.504449                219.281113
+         Puka Nacua     11      106          79              990              206.60 23.592060                217.592514
+       Nico Collins     12       99          68             1006              210.60 25.787817                207.907974
+       Malik Nabers     15      170         109             1204              273.60 21.429158                206.586685
+Marvin Harrison Jr.     17      116          62              885              196.50 22.390144                205.628372
+   Jameson Williams     15       91          58             1001              212.20 23.767283                201.942413
+     Garrett Wilson     17      154         101             1104              251.90 24.443532                201.652420
+      Davante Adams     14      141          85             1063              241.30 32.019165                201.035950
+      DeVonta Smith     13       89          68              833              199.40 26.130048                198.585556
+     Jauan Jennings     15      113          77              975              210.50 27.477070                197.737732
+
+Top 20 RB Projections for 2025
+       player_name  games  targets  carries  rushing_yards  fantasy_points_ppr       age  projected_fantasy_points
+      Jahmyr Gibbs     17       63      250           1412              362.90 22.784394                248.082718
+       Chase Brown     16       65      229            990              255.00 24.780287                243.126160
+     De'Von Achane     17       87      203            907              299.90 23.216975                242.012054
+    Kyren Williams     16       40      316           1299              272.10 24.347707                238.535248
+        James Cook     16       38      207           1009              266.70 25.267625                237.330124
+      Alvin Kamara     14       89      228            950              265.30 29.437372                235.716141
+   Jonathan Taylor     14       31      303           1431              244.70 25.949350                228.318314
+    Bijan Robinson     17       72      304           1456              341.70 22.918549                228.215332
+      James Conner     16       55      236           1094              253.80 29.659138                227.495575
+       Josh Jacobs     17       43      301           1329              293.10 26.885695                221.311646
+       Breece Hall     16       76      209            876              240.90 23.586585                216.941254
+     Chuba Hubbard     15       54      250           1195              241.60 25.557837                216.564041
+      Bucky Irving     17       52      207           1122              244.40 22.368241                214.153397
+         Joe Mixon     14       52      245           1016              240.50 28.438056                213.904877
+Kenneth Walker III     11       53      153            573              181.20 24.197125                213.257050
+      J.K. Dobbins     13       38      195            905              191.80 26.039699                192.356491
+     Derrick Henry     17       22      325           1921              336.40 30.989733                189.519684
+  David Montgomery     14       38      185            775              221.72 27.567420                189.162842
+       Aaron Jones     17       62      255           1138              241.60 30.080767                188.427856
+    Saquon Barkley     16       43      345           2005              355.30 27.890486                186.680817
+
+Top 20 TE Projections for 2025
+   player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
+ George Kittle     15       94          78             1106              236.60 31.227926                208.271057
+  Brock Bowers     17      153         112             1194              262.70 22.050650                203.574921
+   Jonnu Smith     17      111          88              884              222.30 29.360712                160.771973
+   Sam LaPorta     16       83          60              726              174.60 23.967146                157.861465
+  Tucker Kraft     17       70          50              707              163.30 24.158795                157.182648
+  Trey McBride     16      147         111             1146              243.80 25.108830                156.815369
+    Cade Otton     14       87          59              600              140.60 25.713895                144.627701
+    Kyle Pitts     17       74          47              602              131.20 24.235455                143.777145
+  Mike Gesicki     16       83          65              665              141.50 29.245722                115.130386
+  Mark Andrews     17       69          55              673              188.80 29.319644                115.062927
+Pat Freiermuth     17       78          65              653              170.30 26.184805                114.256973
+  Hunter Henry     16       97          66              674              145.40 30.067077                112.290138
+  Travis Kelce     16      133          97              823              195.40 35.238877                103.038956
+  Chig Okonkwo     16       70          52              479              113.60 25.314168                 97.061600
+ Juwan Johnson     15       66          50              548              122.80 28.298426                 96.038132
+   David Njoku     11       97          64              505              148.50 28.476386                 95.827515
+     Noah Gray     16       49          40              437              113.30 25.672827                 95.770180
+ Foster Moreau     16       43          32              413              103.30 27.655031                 95.185905
+Dalton Schultz     17       85          53              532              118.20 28.473648                 92.795952
+   Taysom Hill      8       31          23              187              102.34 34.357290                 90.803413
+
+Notes: Retuning massively shook up rankings! Model still seems to lean bearish on projections. These are the first results I've compared to a major model, in this case, ESPN's Mike Clay's 2025 Projection Guide (via https://g.espncdn.com/s/ffldraftkit/25/NFLDK2025_CS_ClayProjections2025.pdf). He projected 32 players to score over 252 fantasy points in 2025, while this model projects 0 players to beat that mark. That said, these rankings are absolutely fathomable as far as the players included and their order. One glaring omission is Christian McCaffrey. I suspect the model is low on him due to having an injury-riddled 2024, playing in only four games. While some people do tend to avoid injured/injury-prone players when drafting fantasy teams, to exclude one of the all time great fantasy players at the back end of his prime seems like a major miscalculation.
+
+# Model Tuning
+
+### XGBoost Tuning experiment
+Created a hyperparameter tuner that used the 2024 validation split for tuning and tested varying values for max_depth, learning_rate, and reg_lambda.
+
+WR best params:
+  max_depth: 5
+  learning_rate: 0.05
+  reg_lambda: 10.0
+  MAE: 43.13
+
+RB best params:
+  max_depth: 4
+  learning_rate: 0.1
+  reg_lambda: 0.5
+  MAE: 43.95
+
+TE best params:
+  max_depth: 3
+  learning_rate: 0.05
+  reg_lambda: 10.0
+  MAE: 29.03
