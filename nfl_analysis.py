@@ -342,6 +342,47 @@ te_features = [
     "breakout_flag"
 ]
 
+# Missing values cleaning
+for df in [wr_model_df, rb_model_df, te_model_df]:
+    # Fill age with player's own average, then position median
+    df["age"] = df.groupby("player_id")["age"].transform(
+        lambda x: x.fillna(x.mean())
+    )
+    position_median_age = df["age"].median()
+    df["age"] = df["age"].fillna(position_median_age)
+    
+    # Recalculate age-derived features
+    df["age_sq"] = df["age"] ** 2
+    df["age_curve"] = np.exp(-((df["age"] - 27.5) ** 2) / (2 * 4.5 ** 2))
+    df["prime_age_bonus"] = np.where(df["age"].between(24, 29), 1, 0)
+    df["post_30_decline"] = np.maximum(df["age"] - 30, 0)
+    
+    # Fill trend/breakout features with 0 (no prior data)
+    df["prev_2yr_avg"] = df["prev_2yr_avg"].fillna(0)
+    df["fantasy_points_change"] = df["fantasy_points_change"].fillna(0)
+    df["breakout_flag"] = df["breakout_flag"].fillna(0)
+    
+    # Fill ratio features with 0
+    ratio_columns = [
+        "targets_per_game",
+        "receptions_per_game",
+        "receiving_yards_per_game",
+        "catch_rate",
+        "yards_per_target",
+        "yards_per_reception",
+        "fantasy_points_per_game",
+        "rushing_yards_per_game",
+        "rushing_tds_per_game",
+        "carries_per_game",
+        "target_share"
+    ]
+    
+    for col in ratio_columns:
+        if col in df.columns:
+            df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+            df[col] = df[col].fillna(0)
+
+
 # ============================================================
 # 8. CROSS-SEASON MODEL VALIDATION
 # ============================================================
@@ -552,8 +593,20 @@ for pos_name, pos_df in position_dfs.items():
 wr_projection_df = wr_season[wr_season["season"] == 2024].copy()
 wr_projection_df["previous_fantasy_points"] = wr_projection_df["fantasy_points_ppr"]
 wr_projection_df["age"] = wr_projection_df["age"].fillna(wr_projection_df["age"].median())
+
+# Add trend features
+wr_projection_df = wr_projection_df.sort_values(["player_id", "season"])
+wr_projection_df["prev_2yr_avg"] = wr_projection_df.groupby("player_id")["fantasy_points_ppr"].transform(
+    lambda s: s.shift(1).rolling(2, min_periods=1).mean()
+)
+wr_projection_df["fantasy_points_change"] = wr_projection_df["fantasy_points_ppr"] - wr_projection_df["prev_2yr_avg"]
+wr_projection_df["breakout_flag"] = (wr_projection_df["fantasy_points_change"] > 5).astype(int)
+wr_projection_df["prev_2yr_avg"] = wr_projection_df["prev_2yr_avg"].fillna(0)
+wr_projection_df["fantasy_points_change"] = wr_projection_df["fantasy_points_change"].fillna(0)
+wr_projection_df["breakout_flag"] = wr_projection_df["breakout_flag"].fillna(0)
+
 wr_projection_df["projected_fantasy_points"] = final_models["WR"].predict(
-wr_projection_df[pos_feature_map["WR"]]
+    wr_projection_df[pos_feature_map["WR"]]
 )
 wr_projection_df = wr_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
@@ -580,8 +633,20 @@ print(
 rb_projection_df = rb_season[rb_season["season"] == 2024].copy()
 rb_projection_df["previous_fantasy_points"] = rb_projection_df["fantasy_points_ppr"]
 rb_projection_df["age"] = rb_projection_df["age"].fillna(rb_projection_df["age"].median())
+
+# Add trend features
+rb_projection_df = rb_projection_df.sort_values(["player_id", "season"])
+rb_projection_df["prev_2yr_avg"] = rb_projection_df.groupby("player_id")["fantasy_points_ppr"].transform(
+    lambda s: s.shift(1).rolling(2, min_periods=1).mean()
+)
+rb_projection_df["fantasy_points_change"] = rb_projection_df["fantasy_points_ppr"] - rb_projection_df["prev_2yr_avg"]
+rb_projection_df["breakout_flag"] = (rb_projection_df["fantasy_points_change"] > 5).astype(int)
+rb_projection_df["prev_2yr_avg"] = rb_projection_df["prev_2yr_avg"].fillna(0)
+rb_projection_df["fantasy_points_change"] = rb_projection_df["fantasy_points_change"].fillna(0)
+rb_projection_df["breakout_flag"] = rb_projection_df["breakout_flag"].fillna(0)
+
 rb_projection_df["projected_fantasy_points"] = final_models["RB"].predict(
-rb_projection_df[pos_feature_map["RB"]]
+    rb_projection_df[pos_feature_map["RB"]]
 )
 rb_projection_df = rb_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
@@ -608,8 +673,20 @@ print(
 te_projection_df = te_season[te_season["season"] == 2024].copy()
 te_projection_df["previous_fantasy_points"] = te_projection_df["fantasy_points_ppr"]
 te_projection_df["age"] = te_projection_df["age"].fillna(te_projection_df["age"].median())
+
+# Add trend features
+te_projection_df = te_projection_df.sort_values(["player_id", "season"])
+te_projection_df["prev_2yr_avg"] = te_projection_df.groupby("player_id")["fantasy_points_ppr"].transform(
+    lambda s: s.shift(1).rolling(2, min_periods=1).mean()
+)
+te_projection_df["fantasy_points_change"] = te_projection_df["fantasy_points_ppr"] - te_projection_df["prev_2yr_avg"]
+te_projection_df["breakout_flag"] = (te_projection_df["fantasy_points_change"] > 5).astype(int)
+te_projection_df["prev_2yr_avg"] = te_projection_df["prev_2yr_avg"].fillna(0)
+te_projection_df["fantasy_points_change"] = te_projection_df["fantasy_points_change"].fillna(0)
+te_projection_df["breakout_flag"] = te_projection_df["breakout_flag"].fillna(0)
+
 te_projection_df["projected_fantasy_points"] = final_models["TE"].predict(
-te_projection_df[pos_feature_map["TE"]]
+    te_projection_df[pos_feature_map["TE"]]
 )
 te_projection_df = te_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
