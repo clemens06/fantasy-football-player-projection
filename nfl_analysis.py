@@ -534,7 +534,7 @@ print(f"Features: {len(pos_feature_map[pos_name])}")
 summary_df = pd.DataFrame(validation_results)
 
 print()
-print(summary_df.head())
+print(summary_df.head(15))
 
 # average MAE by position
 pos_avg_mae = (summary_df.groupby("position")["best_mae"].mean().sort_values())
