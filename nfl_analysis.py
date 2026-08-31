@@ -611,7 +611,7 @@ wr_projection_df["projected_fantasy_points"] = final_models["WR"].predict(
 wr_projection_df = wr_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print("Top 10 WR Projections for 2025")
+print("Top 20 WR Projections for 2025")
 print(
     wr_projection_df[
         [
@@ -625,7 +625,7 @@ print(
             "projected_fantasy_points"
         ]
     ]
-    .head(10)
+    .head(20)
     .to_string(index=False)
 )
 
@@ -651,21 +651,21 @@ rb_projection_df["projected_fantasy_points"] = final_models["RB"].predict(
 rb_projection_df = rb_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print("Top 10 RB Projections for 2025")
+print("Top 20 RB Projections for 2025")
 print(
     rb_projection_df[
         [
             "player_name",
             "games",
             "targets",
-            "receptions",
-            "receiving_yards",
+            "carries",
+            "rushing_yards",
             "fantasy_points_ppr",
             "age",
             "projected_fantasy_points"
         ]
     ]
-    .head(10)
+    .head(20)
     .to_string(index=False)
 )
 
@@ -691,7 +691,7 @@ te_projection_df["projected_fantasy_points"] = final_models["TE"].predict(
 te_projection_df = te_projection_df.sort_values("projected_fantasy_points", ascending=False)
 
 print()
-print("Top 10 TE Projections for 2025")
+print("Top 20 TE Projections for 2025")
 print(
     te_projection_df[
         [
@@ -705,7 +705,7 @@ print(
             "projected_fantasy_points"
         ]
     ]
-    .head(10)
+    .head(20)
     .to_string(index=False)
 )
 

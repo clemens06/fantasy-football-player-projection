@@ -1,7 +1,6 @@
 # To Do
 
 ##  Need to do (in order of priority)
-- Age curves per position
 - Add QBs
 - Add MORE DATA 
 - Get better understanding of XGBRegressor
