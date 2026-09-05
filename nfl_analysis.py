@@ -36,9 +36,6 @@ nfl_df = nfl_df[nfl_df["season_type"] == "REG"].copy()
 # 2. FILTER BY POSITION
 # ============================================================
 
-#create a separate WR dataframe
-wr_df = nfl_df[nfl_df["position"] == "WR"].copy()
-
 # Sum team pass attempts per week, from QB rows in the full weekly dataset
 team_attempts = (nfl_df[nfl_df["position"] == "QB"]
     .groupby(["season", "week", "team"])["attempts"]
@@ -46,6 +43,9 @@ team_attempts = (nfl_df[nfl_df["position"] == "QB"]
     .reset_index()
     .rename(columns={"attempts": "team_pass_attempts"})
 )
+
+#create a separate WR dataframe
+wr_df = nfl_df[nfl_df["position"] == "WR"].copy()
 
 # Merge onto the weekly WR data using season, week, and team
 wr_df = wr_df.merge(team_attempts,on=["season", "week", "team"],how="left")
@@ -61,6 +61,9 @@ te_df = nfl_df[nfl_df["position"] == "TE"].copy()
 
 #add team pass attempts to TE dataframe as well
 te_df = te_df.merge(team_attempts,on=["season", "week", "team"],how="left")
+
+#create a separate QB dataframe
+qb_df = nfl_df[nfl_df["position"] == "QB"].copy()
 
 # ============================================================
 # 3. CREATE SEASON-LEVEL POSITIONAL DATA
@@ -121,6 +124,23 @@ te_season = (te_df.groupby(["season", "player_id"])
     .reset_index()
 )
 
+qb_season = (qb_df.groupby(["season", "player_id"])
+    .agg(
+        games=("game_id", "nunique"),
+        attempts=("attempts", "sum"),
+        completions=("completions", "sum"),
+        passing_yards=("passing_yards", "sum"),
+        passing_tds=("passing_tds", "sum"),
+        interceptions=("interceptions", "sum"),
+        fantasy_points=("fantasy_points", "sum"),
+        fantasy_points_ppr=("fantasy_points_ppr", "sum"),
+        rushing_yards=("rushing_yards", "sum"),
+        rushing_tds=("rushing_tds", "sum"),
+        carries=("carries", "sum"),
+    )
+    .reset_index()
+)
+
 # ============================================================
 # 4. ADD OFFICIAL PLAYER INFORMATION + AGE
 # ============================================================
@@ -132,19 +152,22 @@ player_data["birth_date"] = pd.to_datetime(player_data["birth_date"],errors="coe
 wr_season = wr_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
 rb_season = rb_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
 te_season = te_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
+qb_season = qb_season.merge(player_data,left_on="player_id",right_on="gsis_id",how="left")
 
 # Remove duplicate ID column
 wr_season = wr_season.drop(columns=["gsis_id"])
 rb_season = rb_season.drop(columns=["gsis_id"])
 te_season = te_season.drop(columns=["gsis_id"])
+qb_season = qb_season.drop(columns=["gsis_id"])
 
 # Rename official name to player_name
 wr_season = wr_season.rename(columns={"display_name": "player_name"})
 rb_season = rb_season.rename(columns={"display_name": "player_name"})
 te_season = te_season.rename(columns={"display_name": "player_name"})
+qb_season = qb_season.rename(columns={"display_name": "player_name"})
 
 # Calculate age at end of season
-for df in [wr_season, rb_season, te_season]:
+for df in [wr_season, rb_season, te_season, qb_season]:
     df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
     df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
 
@@ -200,6 +223,17 @@ te_season["rushing_yards_per_game"] = (te_season["rushing_yards"]/ te_season["ga
 te_season["rushing_tds_per_game"] = (te_season["rushing_tds"]/ te_season["games"])
 te_season["carries_per_game"] = (te_season["carries"]/ te_season["games"])
 
+#qb_season features
+qb_season["attempts_per_game"] = (qb_season["attempts"]/ qb_season["games"])
+qb_season["completions_per_game"] = (qb_season["completions"]/ qb_season["games"])
+qb_season["passing_yards_per_game"] = (qb_season["passing_yards"]/ qb_season["games"])
+qb_season["passing_tds_per_game"] = (qb_season["passing_tds"]/ qb_season["games"])
+qb_season["interceptions_per_game"] = (qb_season["interceptions"]/ qb_season["games"])
+qb_season["fantasy_points_per_game"] = (qb_season["fantasy_points_ppr"]/ qb_season["games"])
+qb_season["rushing_yards_per_game"] = (qb_season["rushing_yards"]/ qb_season["games"])
+qb_season["rushing_tds_per_game"] = (qb_season["rushing_tds"]/ qb_season["games"])
+qb_season["carries_per_game"] = (qb_season["carries"]/ qb_season["games"])
+
 # Replace undefined ratios with 0
 ratio_columns = [
     "targets_per_game",
@@ -211,12 +245,18 @@ ratio_columns = [
     "fantasy_points_per_game",
     "rushing_yards_per_game",
     "rushing_tds_per_game",
-    "carries_per_game"
+    "carries_per_game",
+    "attempts_per_game",
+    "completions_per_game",
+    "passing_yards_per_game",
+    "passing_tds_per_game",
+    "interceptions_per_game"
 ]
 
 wr_season[ratio_columns] = (wr_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
 rb_season[ratio_columns] = (rb_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
 te_season[ratio_columns] = (te_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
+qb_season[ratio_columns] = (qb_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
 
 # ============================================================
 # 6. CREATE NEXT-SEASON TARGET
@@ -225,6 +265,7 @@ te_season[ratio_columns] = (te_season[ratio_columns].replace([float("inf"), -flo
 wr_season["next_season"] = (wr_season["season"] + 1)
 rb_season["next_season"] = (rb_season["season"] + 1)
 te_season["next_season"] = (te_season["season"] + 1)
+qb_season["next_season"] = (qb_season["season"] + 1)
 
 future_wr = wr_season[["season","player_id","fantasy_points_ppr"]].copy()
 future_wr = future_wr.rename(columns={"season": "next_season","fantasy_points_ppr":"next_fantasy_points"})
@@ -238,12 +279,17 @@ future_te = te_season[["season","player_id","fantasy_points_ppr"]].copy()
 future_te = future_te.rename(columns={"season": "next_season","fantasy_points_ppr":"next_fantasy_points"})
 te_model_df = te_season.merge(future_te,on=["next_season","player_id"],how="inner")
 
+future_qb = qb_season[["season","player_id","fantasy_points_ppr"]].copy()
+future_qb = future_qb.rename(columns={"season": "next_season","fantasy_points_ppr":"next_fantasy_points"})
+qb_model_df = qb_season.merge(future_qb,on=["next_season","player_id"],how="inner")
+
 # Previous-season fantasy points
 wr_model_df["previous_fantasy_points"] = (wr_model_df["fantasy_points_ppr"])
 rb_model_df["previous_fantasy_points"] = (rb_model_df["fantasy_points_ppr"])
 te_model_df["previous_fantasy_points"] = (te_model_df["fantasy_points_ppr"])
+qb_model_df["previous_fantasy_points"] = (qb_model_df["fantasy_points_ppr"])
 
-for df in [wr_model_df, rb_model_df, te_model_df]:
+for df in [wr_model_df, rb_model_df, te_model_df, qb_model_df]:
     df.sort_values(["player_id", "season"], inplace=True)
     df["prev_2yr_avg"] = (df.groupby("player_id")["fantasy_points_ppr"].transform(lambda s: s.shift(1).rolling(2, min_periods=1).mean()))
     df["fantasy_points_change"] = (df["fantasy_points_ppr"] - df["prev_2yr_avg"])
@@ -346,8 +392,39 @@ te_features = [
     "breakout_flag"
 ]
 
+qb_features = [
+    "passing_yards",
+    "passing_tds",
+    "interceptions",
+    "sacks",
+    "attempts",
+    "completions",
+    "passing_yards_per_game",
+    "passing_tds_per_game",
+    "interceptions_per_game",
+    "sacks_per_game",
+    "attempts_per_game",
+    "completions_per_game",
+    "carries_per_game",
+    "rushing_yards_per_game",
+    "rushing_tds_per_game",
+    "previous_fantasy_points",
+    "fantasy_points_per_game",
+    "carries",
+    "rushing_yards",
+    "rushing_tds",
+    "age",
+    "age_sq",
+    "age_curve",
+    "prime_age_bonus",
+    "post_30_decline",
+    "prev_2yr_avg",
+    "fantasy_points_change",
+    "breakout_flag"
+]
+
 # Missing values cleaning
-for df in [wr_model_df, rb_model_df, te_model_df]:
+for df in [wr_model_df, rb_model_df, te_model_df, qb_model_df]:
     # Fill age with player's own average, then position median
     df["age"] = df.groupby("player_id")["age"].transform(
         lambda x: x.fillna(x.mean())
@@ -396,9 +473,9 @@ print("=" * 60)
 print("CROSS-SEASON MODEL VALIDATION")
 print("=" * 60)
 
-pos_feature_map = {"WR": wr_features,"RB": rb_features,"TE": te_features}
+pos_feature_map = {"WR": wr_features,"RB": rb_features,"TE": te_features,"QB": qb_features}
 
-position_dfs = {"WR": wr_model_df,"RB": rb_model_df,"TE": te_model_df}
+position_dfs = {"WR": wr_model_df,"RB": rb_model_df,"TE": te_model_df,"QB": qb_model_df}
 
 validation_results = []
 tuning_results = []
