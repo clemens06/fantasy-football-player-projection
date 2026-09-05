@@ -5,6 +5,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import RandomForestRegressor
 
+from sklearn.model_selection import TimeSeriesSplit
 from xgboost import XGBRegressor
 
 import numpy as np
@@ -127,11 +128,11 @@ te_season = (te_df.groupby(["season", "player_id"])
 qb_season = (qb_df.groupby(["season", "player_id"])
     .agg(
         games=("game_id", "nunique"),
-        attempts=("attempts", "sum"),
-        completions=("completions", "sum"),
+        passing_attempts=("attempts", "sum"),
+        passing_completions=("completions", "sum"),
         passing_yards=("passing_yards", "sum"),
         passing_tds=("passing_tds", "sum"),
-        interceptions=("interceptions", "sum"),
+        passing_interceptions=("passing_interceptions", "sum"),
         fantasy_points=("fantasy_points", "sum"),
         fantasy_points_ppr=("fantasy_points_ppr", "sum"),
         rushing_yards=("rushing_yards", "sum"),
@@ -224,11 +225,11 @@ te_season["rushing_tds_per_game"] = (te_season["rushing_tds"]/ te_season["games"
 te_season["carries_per_game"] = (te_season["carries"]/ te_season["games"])
 
 #qb_season features
-qb_season["attempts_per_game"] = (qb_season["attempts"]/ qb_season["games"])
-qb_season["completions_per_game"] = (qb_season["completions"]/ qb_season["games"])
+qb_season["passing_attempts_per_game"] = (qb_season["passing_attempts"]/ qb_season["games"])
+qb_season["passing_completions_per_game"] = (qb_season["passing_completions"]/ qb_season["games"])
 qb_season["passing_yards_per_game"] = (qb_season["passing_yards"]/ qb_season["games"])
 qb_season["passing_tds_per_game"] = (qb_season["passing_tds"]/ qb_season["games"])
-qb_season["interceptions_per_game"] = (qb_season["interceptions"]/ qb_season["games"])
+qb_season["passing_interceptions_per_game"] = (qb_season["passing_interceptions"]/ qb_season["games"])
 qb_season["fantasy_points_per_game"] = (qb_season["fantasy_points_ppr"]/ qb_season["games"])
 qb_season["rushing_yards_per_game"] = (qb_season["rushing_yards"]/ qb_season["games"])
 qb_season["rushing_tds_per_game"] = (qb_season["rushing_tds"]/ qb_season["games"])
@@ -246,17 +247,26 @@ ratio_columns = [
     "rushing_yards_per_game",
     "rushing_tds_per_game",
     "carries_per_game",
-    "attempts_per_game",
-    "completions_per_game",
+    "target_share",
+    "passing_attempts_per_game",
+    "passing_completions_per_game",
     "passing_yards_per_game",
     "passing_tds_per_game",
-    "interceptions_per_game"
+    "passing_interceptions_per_game",
+    "sacks_per_game"
 ]
 
-wr_season[ratio_columns] = (wr_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
-rb_season[ratio_columns] = (rb_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
-te_season[ratio_columns] = (te_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
-qb_season[ratio_columns] = (qb_season[ratio_columns].replace([float("inf"), -float("inf")],0).fillna(0))
+for df in [wr_season, rb_season, te_season, qb_season]:
+    existing_columns = [
+        column for column in ratio_columns
+        if column in df.columns
+    ]
+
+    df[existing_columns] = (
+        df[existing_columns]
+        .replace([np.inf, -np.inf], np.nan)
+        .fillna(0)
+    )
 
 # ============================================================
 # 6. CREATE NEXT-SEASON TARGET
@@ -293,7 +303,7 @@ for df in [wr_model_df, rb_model_df, te_model_df, qb_model_df]:
     df.sort_values(["player_id", "season"], inplace=True)
     df["prev_2yr_avg"] = (df.groupby("player_id")["fantasy_points_ppr"].transform(lambda s: s.shift(1).rolling(2, min_periods=1).mean()))
     df["fantasy_points_change"] = (df["fantasy_points_ppr"] - df["prev_2yr_avg"])
-    df["breakout_flag"] = (df["fantasy_points_change"] > 5).astype(int)
+    df["breakout_flag"] = (df["fantasy_points_change"] > 25).astype(int)
 
 # ============================================================
 # 7. DEFINE FEATURES
@@ -395,16 +405,14 @@ te_features = [
 qb_features = [
     "passing_yards",
     "passing_tds",
-    "interceptions",
-    "sacks",
-    "attempts",
-    "completions",
+    "passing_interceptions",
+    "passing_attempts",
+    "passing_completions",
     "passing_yards_per_game",
     "passing_tds_per_game",
-    "interceptions_per_game",
-    "sacks_per_game",
-    "attempts_per_game",
-    "completions_per_game",
+    "passing_interceptions_per_game",
+    "passing_attempts_per_game",
+    "passing_completions_per_game",
     "carries_per_game",
     "rushing_yards_per_game",
     "rushing_tds_per_game",
@@ -455,7 +463,13 @@ for df in [wr_model_df, rb_model_df, te_model_df, qb_model_df]:
         "rushing_yards_per_game",
         "rushing_tds_per_game",
         "carries_per_game",
-        "target_share"
+        "target_share",
+        "passing_attempts_per_game",
+        "passing_completions_per_game",
+        "passing_yards_per_game",
+        "passing_tds_per_game",
+        "passing_interceptions_per_game",
+        "sacks_per_game"
     ]
     
     for col in ratio_columns:
@@ -576,7 +590,13 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
 
         # Ridge Regression
         ridge_model = make_pipeline(
-        StandardScaler(),RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],cv=5))
+        StandardScaler(),
+        RidgeCV(
+        alphas=[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],
+        scoring="neg_mean_absolute_error",
+        cv=TimeSeriesSplit(n_splits=5)
+    )
+)
         ridge_model.fit(X_train, y_train)
         ridge_predictions = ridge_model.predict(X_test)
         selected_alpha = ridge_model.named_steps["ridgecv"].alpha_
@@ -613,6 +633,8 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         best_model_name, best_model_mae = min(model_maes.items(),key=lambda x: x[1])
 
         print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
+
+        print()
 
         validation_results.append({
         "season": prediction_season,
@@ -736,6 +758,7 @@ print("=" * 60)
 print(f"Training rows: {len(wr_model_df)}")
 print(f"Training rows: {len(rb_model_df)}")
 print(f"Training rows: {len(te_model_df)}")
+print(f"Training rows: {len(qb_model_df)}")
 print(f"Features: {len(pos_feature_map[pos_name])}")
 
 summary_df = pd.DataFrame(validation_results)
@@ -778,7 +801,7 @@ print(avg_mae_by_model.round(3))
 
 print()
 print("=" * 60)
-print("2025 WR PROJECTIONS")
+print("2025 PROJECTIONS")
 print("=" * 60)
 
 final_models = {}
@@ -822,7 +845,7 @@ def create_projection_df(season_df, season, feature_columns):
     )
 
     projection_df["breakout_flag"] = (
-        projection_df["fantasy_points_change"] > 5
+        projection_df["fantasy_points_change"] > 25
     ).astype(int)
 
     # Select 2024 only after historical features are calculated
@@ -897,6 +920,12 @@ te_projection_df = create_projection_df(
     pos_feature_map["TE"]
 )
 
+qb_projection_df = create_projection_df(
+    qb_season,
+    2024,
+    pos_feature_map["QB"]
+)
+
 # Generate predictions
 wr_projection_df["projected_fantasy_points"] = (
     final_models["WR"].predict(
@@ -916,6 +945,12 @@ te_projection_df["projected_fantasy_points"] = (
     )
 )
 
+qb_projection_df["projected_fantasy_points"] = (
+    final_models["QB"].predict(
+        qb_projection_df[pos_feature_map["QB"]]
+    )
+)
+
 # Sort projections
 wr_projection_df = wr_projection_df.sort_values(
     "projected_fantasy_points",
@@ -932,19 +967,18 @@ te_projection_df = te_projection_df.sort_values(
     ascending=False
 )
 
+qb_projection_df = qb_projection_df.sort_values(
+    "projected_fantasy_points",
+    ascending=False
+)
+
 print()
 print("Top 20 WR Projections for 2025")
 print(
     wr_projection_df[
         [
             "player_name",
-            "games",
-            "targets",
-            "receptions",
-            "receiving_yards",
-            "fantasy_points_ppr",
             "age",
-            "prev_2yr_avg",
             "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
@@ -960,13 +994,7 @@ print(
     rb_projection_df[
         [
             "player_name",
-            "games",
-            "targets",
-            "carries",
-            "rushing_yards",
-            "fantasy_points_ppr",
             "age",
-            "prev_2yr_avg",
             "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
@@ -982,13 +1010,7 @@ print(
     te_projection_df[
         [
             "player_name",
-            "games",
-            "targets",
-            "receptions",
-            "receiving_yards",
-            "fantasy_points_ppr",
             "age",
-            "prev_2yr_avg",
             "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
@@ -998,6 +1020,21 @@ print(
     .to_string(index=False)
 )
 
+print()
+print("Top 20 QB Projections for 2025")
+print(
+    qb_projection_df[
+        [
+            "player_name",
+            "age",
+            "fantasy_points_change",
+            "breakout_flag",
+            "projected_fantasy_points"
+        ]
+    ]
+    .head(20)
+    .to_string(index=False)
+)
 
 # ============================================================
 # 12. 2024 MODEL ERROR ANALYSIS
@@ -1025,49 +1062,72 @@ te_y_train = te_train_df["next_fantasy_points"]
 te_X_test = te_test_df[pos_feature_map["TE"]]
 te_y_test = te_test_df["next_fantasy_points"]
 
+qb_train_df = qb_model_df[qb_model_df["next_season"] < 2024]
+qb_test_df = qb_model_df[qb_model_df["next_season"] == 2024]
+qb_X_train = qb_train_df[pos_feature_map["QB"]]
+qb_y_train = qb_train_df["next_fantasy_points"]
+qb_X_test = qb_test_df[pos_feature_map["QB"]]
+qb_y_test = qb_test_df["next_fantasy_points"]
+
 # Train 2024 evaluation model
 
-wr_rf_model = RandomForestRegressor(
-    n_estimators=300,
-    max_depth=8,
+wr_eval_model = XGBRegressor(
+    n_estimators=100,
+    **best_final_params["WR"],
+    subsample=0.8,
     random_state=42
 )
 
-rb_rf_model = RandomForestRegressor(
-    n_estimators=300, 
-    max_depth=8,
+rb_eval_model = XGBRegressor(
+    n_estimators=100,
+    **best_final_params["RB"],
+    subsample=0.8,
     random_state=42
 )
 
-te_rf_model = RandomForestRegressor(
-    n_estimators=300,
-    max_depth=8,
+te_eval_model = XGBRegressor(
+    n_estimators=100,
+    **best_final_params["TE"],
+    subsample=0.8,
     random_state=42
 )
 
-wr_rf_model.fit(wr_X_train,wr_y_train)
-rb_rf_model.fit(rb_X_train,rb_y_train)
-te_rf_model.fit(te_X_train,te_y_train)
+qb_eval_model = XGBRegressor(
+    n_estimators=100,
+    **best_final_params["QB"],
+    subsample=0.8,
+    random_state=42
+)
 
-wr_predictions = wr_rf_model.predict(wr_X_test)
-rb_predictions = rb_rf_model.predict(rb_X_test)
-te_predictions = te_rf_model.predict(te_X_test)
+wr_eval_model.fit(wr_X_train, wr_y_train)
+rb_eval_model.fit(rb_X_train, rb_y_train)
+te_eval_model.fit(te_X_train, te_y_train)
+qb_eval_model.fit(qb_X_train, qb_y_train)
+
+wr_predictions = wr_eval_model.predict(wr_X_test)
+rb_predictions = rb_eval_model.predict(rb_X_test)
+te_predictions = te_eval_model.predict(te_X_test)
+qb_predictions = qb_eval_model.predict(qb_X_test)
 
 wr_comparison = wr_test_df[["player_id","player_name","next_fantasy_points"]].copy()
 rb_comparison = rb_test_df[["player_id","player_name","next_fantasy_points"]].copy()
 te_comparison = te_test_df[["player_id","player_name","next_fantasy_points"]].copy()
+qb_comparison = qb_test_df[["player_id","player_name","next_fantasy_points"]].copy()
 
 wr_comparison["predicted"] = wr_predictions
 rb_comparison["predicted"] = rb_predictions
 te_comparison["predicted"] = te_predictions
+qb_comparison["predicted"] = qb_predictions
 
 wr_comparison["error"] = (wr_comparison["predicted"] - wr_comparison["next_fantasy_points"])
 rb_comparison["error"] = (rb_comparison["predicted"] - rb_comparison["next_fantasy_points"])
 te_comparison["error"] = (te_comparison["predicted"] - te_comparison["next_fantasy_points"])
+qb_comparison["error"] = (qb_comparison["predicted"] - qb_comparison["next_fantasy_points"])
 
 wr_comparison["absolute_error"] = (wr_comparison["error"].abs())
 rb_comparison["absolute_error"] = (rb_comparison["error"].abs())
 te_comparison["absolute_error"] = (te_comparison["error"].abs())
+qb_comparison["absolute_error"] = (qb_comparison["error"].abs())
 
 # ============================================================
 # 13. BIGGEST OVERPREDICTIONS
@@ -1203,6 +1263,19 @@ print(rb_comparison.sort_values("absolute_error",ascending=False)[
 print()
 print("TE")
 print(te_comparison.sort_values("absolute_error",ascending=False)[
+        [
+            "player_name",
+            "next_fantasy_points",
+            "predicted",
+            "error"
+        ]
+    ]
+    .head(20)
+)
+
+print()
+print("QB")
+print(qb_comparison.sort_values("absolute_error",ascending=False)[
         [
             "player_name",
             "next_fantasy_points",
