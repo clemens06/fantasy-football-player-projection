@@ -9,6 +9,10 @@ from xgboost import XGBRegressor
 
 import numpy as np
 
+from sklearn.linear_model import RidgeCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
 # ============================================================
 # 1. LOAD DATA
 # ============================================================
@@ -404,55 +408,82 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         train_df = pos_df[pos_df["next_season"] < prediction_season].copy()
         test_df = pos_df[pos_df["next_season"] == prediction_season].copy()
 
+        if train_df.empty or test_df.empty:
+            continue
+
         X_train = train_df[pos_feature_map[pos_name]]
         y_train = train_df["next_fantasy_points"]
-
         X_test = test_df[pos_feature_map[pos_name]]
         y_test = test_df["next_fantasy_points"]
 
-        print()
-        print(f"Predicting: {prediction_season} | Position: {pos_name}")
-        print("Training:", X_train.shape)
-        print("Testing:", X_test.shape)
+        # Must be inside both loops
+        best_xgb_mae = float("inf")
+        best_xgb_params = {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "reg_lambda": 5.0
+        }
 
- # Debug: check for NaN
-        nan_count_train = X_train.isna().sum().sum()
-        nan_count_test = X_test.isna().sum().sum()
-        print(f"NaN in X_train: {nan_count_train}, NaN in X_test: {nan_count_test}")
-        
-        if nan_count_train > 0 or nan_count_test > 0:
-            print(f"WARNING: {pos_name} {prediction_season} has NaN values!")
-            print(X_train.isna().sum()[X_train.isna().sum() > 0])
-            continue
+        training_seasons = sorted(train_df["next_season"].unique())
 
-# Tune XGBoost for this season-position combo
-        best_xgb_mae = float('inf')
-        best_xgb_params = {}
+        if len(training_seasons) >= 2:
+            inner_validation_season = training_seasons[-1]
 
-        for max_depth in [2, 3, 4, 5]:
-            for learning_rate in [0.01, 0.05, 0.1]:
-                for reg_lambda in [0.5, 1.0, 5.0]:
-                    model = XGBRegressor(
-                        n_estimators=100,
-                        max_depth=max_depth,
-                        learning_rate=learning_rate,
-                        reg_lambda=reg_lambda,
-                        subsample=0.8,
-                        random_state=42,
-                        verbosity=0
-                    )
+            inner_train_df = train_df[
+                train_df["next_season"] < inner_validation_season
+            ]
+            inner_validation_df = train_df[
+                train_df["next_season"] == inner_validation_season
+            ]
 
-                    model.fit(X_train, y_train, verbose=False)
-                    preds = model.predict(X_test)
-                    mae = mean_absolute_error(y_test, preds)
+            X_inner_train = inner_train_df[pos_feature_map[pos_name]]
+            y_inner_train = inner_train_df["next_fantasy_points"]
+            X_inner_validation = inner_validation_df[pos_feature_map[pos_name]]
+            y_inner_validation = inner_validation_df["next_fantasy_points"]
 
-                    if mae < best_xgb_mae:
-                        best_xgb_mae = mae
-                        best_xgb_params = {
-                            "max_depth": max_depth,
-                            "learning_rate": learning_rate,
-                            "reg_lambda": reg_lambda
-                        }
+            for max_depth in [2, 3, 4, 5]:
+                for learning_rate in [0.01, 0.05, 0.1]:
+                    for reg_lambda in [0.5, 1.0, 5.0]:
+                        candidate_model = XGBRegressor(
+                            n_estimators=100,
+                            max_depth=max_depth,
+                            learning_rate=learning_rate,
+                            reg_lambda=reg_lambda,
+                            subsample=0.8,
+                            random_state=42
+                        )
+
+                        candidate_model.fit(X_inner_train, y_inner_train)
+                        inner_predictions = candidate_model.predict(
+                            X_inner_validation
+                        )
+                        inner_mae = mean_absolute_error(
+                            y_inner_validation,
+                            inner_predictions
+                        )
+
+                        if inner_mae < best_xgb_mae:
+                            best_xgb_mae = inner_mae
+                            best_xgb_params = {
+                                "max_depth": max_depth,
+                                "learning_rate": learning_rate,
+                                "reg_lambda": reg_lambda
+                            }
+
+        # This must be outside the if block, so 2020 is evaluated too
+        xgb_model = XGBRegressor(
+            n_estimators=100,
+            **best_xgb_params,
+            subsample=0.8,
+            random_state=42
+        )
+
+        xgb_model.fit(X_train, y_train)
+        xgb_predictions = xgb_model.predict(X_test)
+        xgb_mae = mean_absolute_error(y_test, xgb_predictions)
+
+        print("XGBoost parameters:", best_xgb_params)
+        print("XGBoost MAE:", round(xgb_mae, 2))
 
         # Baseline
         baseline_predictions = (test_df["previous_fantasy_points"])
@@ -467,9 +498,12 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         print("Linear Regression MAE:", round(linear_mae, 2))
 
         # Ridge Regression
-        ridge_model = Ridge(alpha=1.0)
-        ridge_model.fit(X_train,y_train)
-        ridge_predictions = (ridge_model.predict(X_test))
+        ridge_model = make_pipeline(
+        StandardScaler(),RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0],cv=5))
+        ridge_model.fit(X_train, y_train)
+        ridge_predictions = ridge_model.predict(X_test)
+        selected_alpha = ridge_model.named_steps["ridgecv"].alpha_
+        print("Ridge alpha:", selected_alpha)
         ridge_mae = mean_absolute_error(y_test,ridge_predictions)
         print("Ridge Regression MAE:",round(ridge_mae, 2))
 
@@ -479,16 +513,6 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         rf_predictions = (rf_model.predict(X_test))
         rf_mae = mean_absolute_error(y_test,rf_predictions)
         print("Random Forest MAE:",round(rf_mae, 2))
-
-         # XGBoost (with tuned params)
-        xgb_model = XGBRegressor(
-            n_estimators=100,
-            max_depth=best_xgb_params['max_depth'],
-            learning_rate=best_xgb_params['learning_rate'],
-            reg_lambda=best_xgb_params['reg_lambda'],
-            subsample=0.8,
-            random_state=42
-        )
 
         xgb_model.fit(X_train, y_train)
         xgb_predictions = xgb_model.predict(X_test)
@@ -514,25 +538,26 @@ for prediction_season in [2020, 2021, 2022, 2023, 2024]:
         print("Best model this season:", best_model_name, "(MAE:", round(best_model_mae, 2), ")")
 
         validation_results.append({
-            "season": prediction_season,
-            "position": pos_name,
-            "linear_mae": linear_mae,
-            "ridge_mae": ridge_mae,
-            "baseline_mae": baseline_mae,
-            "random_forest_mae": rf_mae,
-            "xgboost_mae": xgb_mae,
-            "ensemble_mae": ensemble_mae,
-            "best_model": best_model_name,
-            "best_mae": best_model_mae
-            })
+        "season": prediction_season,
+        "position": pos_name,
+        "linear_mae": linear_mae,
+        "ridge_mae": ridge_mae,
+        "baseline_mae": baseline_mae,
+        "random_forest_mae": rf_mae,
+        "xgboost_mae": xgb_mae,
+        "ensemble_mae": ensemble_mae,
+        "best_model": best_model_name,
+        "best_mae": best_model_mae
+        })
 
         tuning_results.append({
-            "season": prediction_season,
-            "position": pos_name,
-            "xgb_max_depth": best_xgb_params['max_depth'],
-            "xgb_learning_rate": best_xgb_params['learning_rate'],
-            "xgb_reg_lambda": best_xgb_params['reg_lambda'],
-            "xgb_mae": best_xgb_mae
+        "season": prediction_season,
+        "position": pos_name,
+        "xgb_max_depth": best_xgb_params["max_depth"],
+        "xgb_learning_rate": best_xgb_params["learning_rate"],
+        "xgb_reg_lambda": best_xgb_params["reg_lambda"],
+        "tuning_mae": best_xgb_mae,
+        "test_mae": xgb_mae
         })
 
 #Tuning Xgboost
@@ -544,27 +569,51 @@ print("=" * 60)
 tuning_df = pd.DataFrame(tuning_results)
 print(tuning_df.to_string(index=False))
 
-# Get best params for final model (average across seasons)
+# Select final parameters using average tuning MAE.
+# Exclude 2020 rows because they have no inner validation season.
+valid_tuning = tuning_df[
+    np.isfinite(tuning_df["tuning_mae"])
+].copy()
+
+parameter_scores = (
+    valid_tuning
+    .groupby(
+        [
+            "position",
+            "xgb_max_depth",
+            "xgb_learning_rate",
+            "xgb_reg_lambda"
+        ],
+        as_index=False
+    )["tuning_mae"]
+    .mean()
+    .sort_values(["position", "tuning_mae"])
+)
+
 best_final_params = {}
-for pos_name in position_dfs.keys():
-    pos_tuning = tuning_df[tuning_df["position"] == pos_name]
-    
-    if len(pos_tuning) > 0:
-        best_final_params[pos_name] = {
-            "max_depth": int(pos_tuning["xgb_max_depth"].mode()[0]) if len(pos_tuning["xgb_max_depth"].mode()) > 0 else int(pos_tuning["xgb_max_depth"].mean()),
-            "learning_rate": pos_tuning["xgb_learning_rate"].mean(),
-            "reg_lambda": pos_tuning["xgb_reg_lambda"].mean()
-        }
-    else:
-        # Fallback to defaults if no tuning data
+
+for pos_name in position_dfs:
+    position_scores = parameter_scores[
+        parameter_scores["position"] == pos_name
+    ]
+
+    if position_scores.empty:
         best_final_params[pos_name] = {
             "max_depth": 3,
             "learning_rate": 0.05,
             "reg_lambda": 5.0
         }
+    else:
+        best_row = position_scores.iloc[0]
+
+        best_final_params[pos_name] = {
+            "max_depth": int(best_row["xgb_max_depth"]),
+            "learning_rate": float(best_row["xgb_learning_rate"]),
+            "reg_lambda": float(best_row["xgb_reg_lambda"])
+        }
 
 print()
-print("Best params for final model (by position):")
+print("Best params for final model:")
 for pos_name, params in best_final_params.items():
     print(f"{pos_name}: {params}")
 

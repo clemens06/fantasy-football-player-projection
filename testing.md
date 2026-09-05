@@ -626,7 +626,7 @@ George Kittle     15       94          78             1106               236.6 3
 Notes: I believe that in general these projections are skewing lower than they should be, especially when it comes to running backs. Keep in mind these projections are for the 2025 season (last year at the time of writing this). That said, these are by far the most fathomable projections that the model has produced thus far. All quality players (Even Kyle Pitts) that have legitimate fantasy upside. 
 Some notable exclusions that I would like to investigate: No Saquon Barkley after a 2000 yard, 360ish point season in the top 10 is deeply disturbing, as well as no Bijan Robinson in spite of Gibbs being the #1 RB, no Derrick Henry (Though I suspect it's age playing a major factor for him, given the model doesn't know how to account for unicorn longevity), no hyper-consistent Amon-Ra St Brown, no Malik Nabers after a nuclear rookie season, and there might be some TEs I'm forgetting. 
 
-### Final WR + RB + TE model pre XGBoost tuning experimentation
+### WR + RB + TE model pre XGBoost tuning experimentation
 
 Top 20 WR Projections for 2025
         player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
@@ -699,7 +699,7 @@ Dalton Kincaid     13       75          44              448               100.8 
 
 Notes: Moved to top 20 to get a better picture. These rankings generally feels like a substantial improvement. Addition and improvement of age features do a better job of rewarding consistency while recognizing the possibility of young players having breakout seasons, which can be seen in players like Bijan Robinson, Brock Bowers, Brian Thomas Jr., and Jahmyr Gibbs having high predictions.
 
-### FINAL FINAL WR + RB + TE model
+### XGBoost tuned model
 
 Top 20 WR Projections for 2025
         player_name  games  targets  receptions  receiving_yards  fantasy_points_ppr       age  projected_fantasy_points
@@ -781,3 +781,12 @@ Best params for final model (by position):
 WR: {'max_depth': 4, 'learning_rate': np.float64(0.06999999999999999), 'reg_lambda': np.float64(2.5)}
 RB: {'max_depth': 2, 'learning_rate': np.float64(0.072), 'reg_lambda': np.float64(2.5)}
 TE: {'max_depth': 2, 'learning_rate': np.float64(0.06), 'reg_lambda': np.float64(1.6)}
+
+
+
+Leakage bug and fix: I had it set up so that the XGBoost was trained on X_train, tried the parameteres, and then simply picked the lowest error on X_test and reported it. This allowed the model to study the answer sheet, so I split the historical training data into "inner training data" and "tuning/validation data," chose the XGBoost parameters using exclusively tuning data, retrained the selected model on the historical training data, and evaluated ONCE on X_test. Also realized I had hyperparameter tuning set up so that only TE results were displayed because of incorrect indentation/arranging, so fixed that. Here are the newer results without 
+
+### Ridge Regression Tuning Experiment
+Ridge model does already perform reasonably well, but experimenting with the alpha value to see if any improvements can be made.
+Alpha value controls regularization strength. Lower = less regularized, higher = more regularized. 1.0 is the default that I have been using.
+Tested on 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0 but need to figure out how I am going to incorporate this without leaking because I found a leakage bug in the xgboost tuner that I need to fix
