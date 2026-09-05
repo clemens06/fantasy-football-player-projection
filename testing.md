@@ -786,6 +786,30 @@ TE: {'max_depth': 2, 'learning_rate': np.float64(0.06), 'reg_lambda': np.float64
 
 Leakage bug and fix: I had it set up so that the XGBoost was trained on X_train, tried the parameteres, and then simply picked the lowest error on X_test and reported it. This allowed the model to study the answer sheet, so I split the historical training data into "inner training data" and "tuning/validation data," chose the XGBoost parameters using exclusively tuning data, retrained the selected model on the historical training data, and evaluated ONCE on X_test. Also realized I had hyperparameter tuning set up so that only TE results were displayed because of incorrect indentation/arranging, so fixed that. Here are the newer results without 
 
+ season position  xgb_max_depth  xgb_learning_rate  xgb_reg_lambda  tuning_mae  test_mae
+   2020       WR              3               0.05             5.0         inf 46.653796
+   2020       RB              3               0.05             5.0         inf 54.604642
+   2020       TE              3               0.05             5.0         inf 33.367862
+   2021       WR              4               0.05             1.0   46.230264 46.850674
+   2021       RB              2               0.01             1.0   53.514429 53.239185
+   2021       TE              3               0.05             5.0   33.367862 32.839628
+   2022       WR              5               0.05             1.0   46.773460 40.162209
+   2022       RB              2               0.05             5.0   47.089194 49.108612
+   2022       TE              4               0.05             0.5   32.312382 29.924386
+   2023       WR              4               0.10             5.0   38.230013 41.170991
+   2023       RB              2               0.10             1.0   48.257496 47.969374
+   2023       TE              2               0.05             1.0   28.634698 29.408873
+   2024       WR              2               0.05             0.5   37.124396 45.518589
+   2024       RB              3               0.10             5.0   46.257852 46.891540
+   2024       TE              2               0.10             0.5   27.729491 30.653546
+
+Best params for final model:
+WR: {'max_depth': 2, 'learning_rate': 0.05, 'reg_lambda': 0.5}
+RB: {'max_depth': 3, 'learning_rate': 0.1, 'reg_lambda': 5.0}
+TE: {'max_depth': 2, 'learning_rate': 0.1, 'reg_lambda': 0.5}
+
+Notes: these results are far from perfect and much higher than previous results but the leakage is definitely fixed.
+
 ### Ridge Regression Tuning Experiment
 Ridge model does already perform reasonably well, but experimenting with the alpha value to see if any improvements can be made.
 Alpha value controls regularization strength. Lower = less regularized, higher = more regularized. 1.0 is the default that I have been using.
