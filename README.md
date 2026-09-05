@@ -1,6 +1,6 @@
 # Fantasy Football Projection Model
 
-A fantasy points projection system built on NFL weekly stats (2018–2024), with an emphasis on **honest and leakage-free validation** over any single model's headline accuracy.
+A fantasy points projection system built on NFL weekly stats (2018–2024), with an emphasis on **honest and leakage-free validation** over headline accuracy.
 
 ## What this does
 
