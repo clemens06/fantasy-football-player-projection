@@ -814,3 +814,4 @@ Notes: these results are far from perfect and much higher than previous results 
 Ridge model does already perform reasonably well, but experimenting with the alpha value to see if any improvements can be made.
 Alpha value controls regularization strength. Lower = less regularized, higher = more regularized. 1.0 is the default that I have been using.
 Tested on 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0 but need to figure out how I am going to incorporate this without leaking because I found a leakage bug in the xgboost tuner that I need to fix
+Switched from random folds to chronological folds

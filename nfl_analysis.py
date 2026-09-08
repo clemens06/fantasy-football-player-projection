@@ -979,7 +979,6 @@ print(
         [
             "player_name",
             "age",
-            "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
         ]
@@ -995,7 +994,6 @@ print(
         [
             "player_name",
             "age",
-            "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
         ]
@@ -1011,7 +1009,6 @@ print(
         [
             "player_name",
             "age",
-            "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
         ]
@@ -1027,7 +1024,6 @@ print(
         [
             "player_name",
             "age",
-            "fantasy_points_change",
             "breakout_flag",
             "projected_fantasy_points"
         ]
