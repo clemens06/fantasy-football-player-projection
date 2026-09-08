@@ -178,12 +178,41 @@ qb_season = qb_season.rename(columns={"display_name": "player_name"})
 for df in [wr_season, rb_season, te_season, qb_season]:
     df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
     df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
+    
+age_curve_params = {
+    "RB": {"peak_age": 25.5, "width": 3.0},
+    "WR": {"peak_age": 27.0, "width": 4.0},
+    "TE": {"peak_age": 28.0, "width": 4.5},
+    "QB": {"peak_age": 29.5, "width": 5.5},
+}
 
-# Age curve: peak around 27, then decline
+def add_age_features(df, position):
+    df = df.copy()
+    params = age_curve_params[position]
+    peak_age = params["peak_age"]
+    width = params["width"]
+
+    df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
+    df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
+
     df["age_sq"] = df["age"] ** 2
-    df["age_curve"] = np.exp(-((df["age"] - 27.5) ** 2) / (2 * 4.5 ** 2))
-    df["prime_age_bonus"] = np.where(df["age"].between(24, 29), 1, 0)
-    df["post_30_decline"] = np.maximum(df["age"] - 30, 0)
+    df["age_curve"] = np.exp(-((df["age"] - peak_age) ** 2) / (2 * width ** 2))
+
+    # Prime window: +/- 2 years around peak_age, rounded to whole years
+    prime_low = round(peak_age - 2)
+    prime_high = round(peak_age + 2)
+    df["prime_age_bonus"] = np.where(df["age"].between(prime_low, prime_high), 1, 0)
+
+    # Decline measured from each position's own peak, not a fixed age-30 cutoff
+    df["post_peak_decline"] = np.maximum(df["age"] - peak_age, 0)
+
+    return df
+
+wr_season = add_age_features(wr_season, "WR")
+rb_season = add_age_features(rb_season, "RB")
+te_season = add_age_features(te_season, "TE")
+qb_season = add_age_features(qb_season, "QB")
+
 # ============================================================
 # 5. CREATE FEATURES
 # ============================================================
