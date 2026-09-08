@@ -178,7 +178,7 @@ qb_season = qb_season.rename(columns={"display_name": "player_name"})
 for df in [wr_season, rb_season, te_season, qb_season]:
     df["season_end"] = pd.to_datetime(df["season"].astype(str) + "-12-31")
     df["age"] = (df["season_end"] - df["birth_date"]).dt.days / 365.25
-    
+
 age_curve_params = {
     "RB": {"peak_age": 25.5, "width": 3.0},
     "WR": {"peak_age": 27.0, "width": 4.0},
@@ -295,11 +295,33 @@ rb_model_df["previous_fantasy_points"] = (rb_model_df["fantasy_points_ppr"])
 te_model_df["previous_fantasy_points"] = (te_model_df["fantasy_points_ppr"])
 qb_model_df["previous_fantasy_points"] = (qb_model_df["fantasy_points_ppr"])
 
-for df in [wr_model_df, rb_model_df, te_model_df, qb_model_df]:
+breakout_std_multiplier = 1.5
+breakout_thresholds = {}  # stores each position's threshold so create_projection_df can reuse it
+
+model_dfs = {"WR": wr_model_df, "RB": rb_model_df, "TE": te_model_df, "QB": qb_model_df}
+
+for pos_name, df in model_dfs.items():
     df.sort_values(["player_id", "season"], inplace=True)
-    df["prev_2yr_avg"] = (df.groupby("player_id")["fantasy_points_ppr"].transform(lambda s: s.shift(1).rolling(2, min_periods=1).mean()))
-    df["fantasy_points_change"] = (df["fantasy_points_ppr"] - df["prev_2yr_avg"])
-    df["breakout_flag"] = (df["fantasy_points_change"] > 25).astype(int)
+
+    df["prev_2yr_avg"] = (
+        df.groupby("player_id")["fantasy_points_ppr"]
+        .transform(lambda s: s.shift(1).rolling(2, min_periods=1).mean())
+    )
+    df["fantasy_points_change"] = df["fantasy_points_ppr"] - df["prev_2yr_avg"]
+
+    position_change_std = df["fantasy_points_change"].dropna().std()
+    threshold = breakout_std_multiplier * position_change_std
+    breakout_thresholds[pos_name] = threshold
+
+    df["breakout_flag"] = (df["fantasy_points_change"] > threshold).astype(int)
+
+wr_model_df, rb_model_df, te_model_df, qb_model_df = (
+    model_dfs["WR"], model_dfs["RB"], model_dfs["TE"], model_dfs["QB"]
+)
+
+print("Breakout thresholds by position:")
+for pos_name, threshold in breakout_thresholds.items():
+    print(f"  {pos_name}: {round(threshold, 2)} PPR points")
 
 # ============================================================
 # 7. DEFINE FEATURES
@@ -323,7 +345,7 @@ wr_features = [
     "age_sq",
     "age_curve",
     "prime_age_bonus",
-    "post_30_decline",
+    "post_peak_decline",
     "target_share",
     "rushing_yards",
     "rushing_tds",
@@ -354,7 +376,7 @@ rb_features = [
     "age_sq",
     "age_curve",
     "prime_age_bonus",
-    "post_30_decline",
+    "post_peak_decline",
     "target_share",
     "rushing_yards",
     "rushing_tds",
@@ -385,7 +407,7 @@ te_features = [
     "age_sq",
     "age_curve",
     "prime_age_bonus",
-    "post_30_decline",
+    "post_peak_decline",
     "target_share",
     "rushing_yards",
     "rushing_tds",
@@ -421,31 +443,50 @@ qb_features = [
     "age_sq",
     "age_curve",
     "prime_age_bonus",
-    "post_30_decline",
+    "post_peak_decline",
     "prev_2yr_avg",
     "fantasy_points_change",
     "breakout_flag"
 ]
-
 # Missing values cleaning
-for df in [wr_model_df, rb_model_df, te_model_df, qb_model_df]:
+position_dfs = {"WR": wr_model_df, "RB": rb_model_df, "TE": te_model_df, "QB": qb_model_df}
+
+for pos_name, df in position_dfs.items():
+    params = age_curve_params[pos_name]
+    peak_age = params["peak_age"]
+    width = params["width"]
+    prime_low = round(peak_age - 2)
+    prime_high = round(peak_age + 2)
+
     # Fill age with player's own average, then position median
-    df["age"] = df.groupby("player_id")["age"].transform(
-        lambda x: x.fillna(x.mean())
-    )
-    position_median_age = df["age"].median()
-    df["age"] = df["age"].fillna(position_median_age)
-    
-    # Recalculate age-derived features
+    df["age"] = df.groupby("player_id")["age"].transform(lambda x: x.fillna(x.mean()))
+    df["age"] = df["age"].fillna(df["age"].median())
+
+    # Recalculate age-derived features using this position's own curve
     df["age_sq"] = df["age"] ** 2
-    df["age_curve"] = np.exp(-((df["age"] - 27.5) ** 2) / (2 * 4.5 ** 2))
-    df["prime_age_bonus"] = np.where(df["age"].between(24, 29), 1, 0)
-    df["post_30_decline"] = np.maximum(df["age"] - 30, 0)
-    
+    df["age_curve"] = np.exp(-((df["age"] - peak_age) ** 2) / (2 * width ** 2))
+    df["prime_age_bonus"] = np.where(df["age"].between(prime_low, prime_high), 1, 0)
+    df["post_peak_decline"] = np.maximum(df["age"] - peak_age, 0)
+
     # Fill trend/breakout features with 0 (no prior data)
     df["prev_2yr_avg"] = df["prev_2yr_avg"].fillna(0)
     df["fantasy_points_change"] = df["fantasy_points_change"].fillna(0)
     df["breakout_flag"] = df["breakout_flag"].fillna(0)
+
+    # Fill ratio features with 0
+    ratio_columns = [
+        "targets_per_game", "receptions_per_game", "receiving_yards_per_game",
+        "catch_rate", "yards_per_target", "yards_per_reception",
+        "fantasy_points_per_game", "rushing_yards_per_game", "rushing_tds_per_game",
+        "carries_per_game", "target_share", "passing_attempts_per_game",
+        "passing_completions_per_game", "passing_yards_per_game",
+        "passing_tds_per_game", "passing_interceptions_per_game",
+    ]
+
+    for col in ratio_columns:
+        if col in df.columns:
+            df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+            df[col] = df[col].fillna(0)
     
     # Fill ratio features with 0
     ratio_columns = [
@@ -809,30 +850,28 @@ for pos_name, pos_df in position_dfs.items():
     final_model.fit(pos_df[pos_feature_map[pos_name]],pos_df["next_fantasy_points"])
     final_models[pos_name] = final_model
 
-def create_projection_df(season_df, season, feature_columns):
+def create_projection_df(season_df, season, feature_columns, breakout_threshold):
     projection_df = season_df.copy()
 
-    # Sort all seasons before calculating historical features
-    projection_df = projection_df.sort_values(
-        ["player_id", "season"]
-    ).copy()
+    projection_df = projection_df.sort_values(["player_id", "season"]).copy()
 
-    # Previous two seasons' average fantasy points
     projection_df["prev_2yr_avg"] = (
         projection_df
         .groupby("player_id")["fantasy_points_ppr"]
-        .transform(
-            lambda values: values.shift(1)
-            .rolling(window=2, min_periods=1)
-            .mean()
-        )
+        .transform(lambda values: values.shift(1).rolling(window=2, min_periods=1).mean())
     )
 
-    # Current season compared with previous-season average
     projection_df["fantasy_points_change"] = (
-        projection_df["fantasy_points_ppr"]
-        - projection_df["prev_2yr_avg"]
+        projection_df["fantasy_points_ppr"] - projection_df["prev_2yr_avg"]
     )
+
+    projection_df["breakout_flag"] = (
+        projection_df["fantasy_points_change"] > breakout_threshold
+    ).astype(int)
+
+    projection_df = projection_df[projection_df["season"] == season].copy()
+
+    # ... rest of the function stays exactly the same ...
 
     projection_df["breakout_flag"] = (
         projection_df["fantasy_points_change"] > 25
@@ -864,8 +903,8 @@ def create_projection_df(season_df, season, feature_columns):
         1,
         0
     )
-    projection_df["post_30_decline"] = np.maximum(
-        projection_df["age"] - 30,
+    projection_df["post_peak_decline"] = np.maximum(
+        projection_df["age"] - 27.5,
         0
     )
 
@@ -892,29 +931,10 @@ def create_projection_df(season_df, season, feature_columns):
     return projection_df
 
 
-wr_projection_df = create_projection_df(
-    wr_season,
-    2024,
-    pos_feature_map["WR"]
-)
-
-rb_projection_df = create_projection_df(
-    rb_season,
-    2024,
-    pos_feature_map["RB"]
-)
-
-te_projection_df = create_projection_df(
-    te_season,
-    2024,
-    pos_feature_map["TE"]
-)
-
-qb_projection_df = create_projection_df(
-    qb_season,
-    2024,
-    pos_feature_map["QB"]
-)
+wr_projection_df = create_projection_df(wr_season, 2024, pos_feature_map["WR"], breakout_thresholds["WR"])
+rb_projection_df = create_projection_df(rb_season, 2024, pos_feature_map["RB"], breakout_thresholds["RB"])
+te_projection_df = create_projection_df(te_season, 2024, pos_feature_map["TE"], breakout_thresholds["TE"])
+qb_projection_df = create_projection_df(qb_season, 2024, pos_feature_map["QB"], breakout_thresholds["QB"])
 
 # Generate predictions
 wr_projection_df["projected_fantasy_points"] = (
