@@ -305,7 +305,7 @@ ensemble_mae         41.160
 
 Notes: Apologies for the formattings inconsistencies. This section is much better organized and readable so will stick with this from here. No major differences from previous section, tight end still concerns me but as of now haven't found whatever problem there may be.
 
-### FINAL FINAL WR + RB TE model
+### XGBoost tuned WR + RB TE model
 
 
     season position  linear_mae  ridge_mae  baseline_mae  random_forest_mae  xgboost_mae  ensemble_mae best_model   best_mae
@@ -341,6 +341,38 @@ xgboost_mae          40.175
 ensemble_mae         40.570
 
 Notes: Tuning had a HUGE EFFECT ON MAES!!!!! XGBoost and Ensemble now win 14 out of 15 times, the only loss coming to Baseline in 2022 on TEs, where XGBoost still came in second. The best model is now officially XGBoost, cutting its MAE down by a full point from the previous results. 
+
+### QB + Age features improvements
+
+Training rows: 1041
+Training rows: 686
+Training rows: 572
+Training rows: 361
+Features: 26
+
+    season position  linear_mae  ridge_mae  baseline_mae  random_forest_mae  xgboost_mae  ensemble_mae        best_model   best_mae
+0     2020       WR   49.520337  45.327286     45.403905          46.691976    46.230405     46.600084  Ridge Regression  45.327286
+1     2020       RB   55.448935  51.778477     55.762281          55.176590    55.349810     52.565451  Ridge Regression  51.778477
+2     2020       TE   32.810815  34.319804     36.367368          33.687930    33.585338     32.547398          Ensemble  32.547398
+3     2020       QB  106.096948  86.993221     70.256842          76.178568    78.170176     87.627749          Baseline  70.256842
+4     2021       WR   46.034130  45.394616     47.539144          46.597065    47.224642     45.717051  Ridge Regression  45.394616
+5     2021       RB   50.354137  47.956251     49.783415          48.583137    53.129342     49.745701  Ridge Regression  47.956251
+6     2021       TE   38.953992  34.563589     32.614227          32.738832    32.789547     34.755523          Baseline  32.614227
+7     2021       QB   73.322330  66.987339     59.607869          63.521048    63.354216     65.872072          Baseline  59.607869
+8     2022       WR   42.085094  41.415258     40.732366          40.132822    40.599090     40.117529          Ensemble  40.117529
+9     2022       RB   52.422892  48.881438     51.147667          50.773081    49.186270     49.157782  Ridge Regression  48.881438
+10    2022       TE   30.848821  26.952041     26.632121          29.143579    29.378979     29.372011          Baseline  26.632121
+11    2022       QB   64.017701  61.412117     56.990746          66.019506    73.287498     65.345426          Baseline  56.990746
+12    2023       WR   40.038129  38.949029     38.779521          39.085441    37.674430     37.963731           XGBoost  37.674430
+13    2023       RB   51.549063  50.100551     54.893684          50.188279    48.640778     49.508237           XGBoost  48.640778
+14    2023       TE   30.033715  28.737031     28.555579          29.284715    29.230358     28.879728          Baseline  28.555579
+
+Average best MAE by position:
+position
+TE    30.109219
+WR    42.289130
+RB    48.771130
+QB    64.269126
 
 # Feature Importance History
 
@@ -771,6 +803,103 @@ Dallas Goedert     10       52          42              496              103.60 
      Noah Gray     16       49          40              437              113.30 25.672827                 98.081116
 
 Notes: Retuning massively shook up rankings! Model still seems to lean bearish on projections. These are the first results I've compared to a major model, in this case, ESPN's Mike Clay's 2025 Projection Guide (via https://g.espncdn.com/s/ffldraftkit/25/NFLDK2025_CS_ClayProjections2025.pdf). He projected 32 players to score over 252 fantasy points in 2025, while this model projects just 2 players to beat that mark. That said, these rankings are absolutely fathomable as far as the players included and their order. One glaring omission is Christian McCaffrey. I suspect the model is low on him due to having an injury-riddled 2024, playing in only four games. While some people do tend to avoid injured/injury-prone players when drafting fantasy teams, to exclude one of the all time great fantasy players at the back end of his prime seems like a major miscalculation.
+
+### 1st QBs + Age feature improvements
+
+
+Top 20 WR Projections for 2025
+        player_name       age  breakout_flag  projected_fantasy_points
+   Justin Jefferson 25.544148              1                328.523987
+        CeeDee Lamb 25.733060              0                303.082153
+         Puka Nacua 23.592060              0                294.279236
+  Amon-Ra St. Brown 25.188227              0                286.256531
+         A.J. Brown 27.504449              0                275.917877
+      Ja'Marr Chase 24.835044              1                273.872009
+      Davante Adams 32.019165              0                269.135040
+        Tyreek Hill 30.836413              0                248.376068
+         Mike Evans 31.362081              0                247.756546
+     Jordan Addison 22.926762              0                247.441498
+   Brian Thomas Jr. 22.231348              0                243.040237
+      DeVonta Smith 26.130048              0                229.803772
+       Drake London 23.438741              1                229.391190
+      Ladd McConkey 23.137577              0                222.225037
+           DJ Moore 27.715264              0                216.233246
+        Tee Higgins 25.952088              1                213.685745
+     Garrett Wilson 24.443532              1                203.331482
+         DK Metcalf 27.047228              0                202.293365
+Marvin Harrison Jr. 22.390144              0                201.522308
+       Nico Collins 25.787817              1                195.713165
+
+Top 20 RB Projections for 2025
+       player_name       age  breakout_flag  projected_fantasy_points
+      Jahmyr Gibbs 22.784394              1                225.197815
+         Joe Mixon 28.438056              0                219.469162
+Kenneth Walker III 24.197125              0                216.088959
+       Josh Jacobs 26.885695              1                216.018982
+      Alvin Kamara 29.437372              1                215.386963
+     De'Von Achane 23.216975              1                214.259125
+       Breece Hall 23.586585              1                208.840469
+    Bijan Robinson 22.918549              1                207.623764
+      Bucky Irving 22.368241              0                205.667221
+      James Conner 29.659138              1                204.570511
+       Chase Brown 24.780287              1                203.600433
+     Chuba Hubbard 25.557837              1                194.403717
+        James Cook 25.267625              1                192.846527
+    Kyren Williams 24.347707              1                191.061081
+  David Montgomery 27.567420              1                190.507217
+   Jonathan Taylor 25.949350              1                184.374832
+       Aaron Jones 30.080767              1                177.882401
+    Saquon Barkley 27.890486              1                175.860413
+     Derrick Henry 30.989733              1                175.472763
+     D'Andre Swift 25.963039              0                173.088730
+
+Top 20 TE Projections for 2025
+   player_name       age  breakout_flag  projected_fantasy_points
+ George Kittle 31.227926              1                206.995239
+  Brock Bowers 22.050650              0                200.300507
+   Sam LaPorta 23.967146              0                194.134583
+  Trey McBride 25.108830              1                189.598129
+   Jonnu Smith 29.360712              1                180.301682
+  Tucker Kraft 24.158795              1                146.873886
+    Cade Otton 25.713895              1                141.303711
+  Hunter Henry 30.067077              1                133.350220
+    Kyle Pitts 24.235455              0                132.862976
+Pat Freiermuth 26.184805              1                131.158524
+  Travis Kelce 35.238877              0                128.296204
+  Mike Gesicki 29.245722              1                124.967491
+  Mark Andrews 29.319644              1                122.995316
+Dalton Kincaid 25.204654              0                121.741821
+   David Njoku 28.476386              0                119.856888
+   Evan Engram 30.329911              0                118.908951
+T.J. Hockenson 27.496235              0                117.527672
+   Taysom Hill 34.357290              0                112.269241
+Dallas Goedert 29.993155              0                111.506630
+     Noah Gray 25.672827              1                103.813660
+
+Top 20 QB Projections for 2025
+    player_name       age  breakout_flag  projected_fantasy_points
+  Lamar Jackson 27.980835              1                365.554474
+     Josh Allen 28.613279              0                348.502319
+ Jayden Daniels 24.035592              0                333.158356
+ Justin Herbert 26.811773              1                288.357452
+     Jared Goff 30.214921              1                269.968353
+    Jalen Hurts 26.401095              0                268.573700
+Patrick Mahomes 29.289528              0                267.899780
+         Bo Nix 24.848734              0                260.369904
+     Joe Burrow 28.057495              1                255.945847
+ Tua Tagovailoa 26.833676              0                252.433624
+ Baker Mayfield 29.716632              1                238.536469
+    Brock Purdy 25.013005              1                229.777649
+ Caleb Williams 23.118412              0                224.004272
+    C.J. Stroud 23.244353              0                210.411667
+     Geno Smith 34.225873              0                207.242416
+    Sam Darnold 27.572895              1                205.967636
+     Drake Maye 22.338125              0                198.081833
+  Justin Fields 25.826146              0                196.780182
+    Jordan Love 26.162902              1                190.515152
+   Kyler Murray 27.400411              1                190.391953
+
+   Notes: Addition of improved breakout flags and age curves substantially increased the ceiling of the model, less glaring outliers in either direction from a pure projection standpoint
 
 # Model Tuning
 
