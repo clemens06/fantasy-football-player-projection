@@ -528,7 +528,83 @@ for pos_name, df in position_dfs.items():
 
 
 # ============================================================
-# 8. CROSS-SEASON MODEL VALIDATION
+# 8. FEATURE ENGINEERING AUDIT
+# ============================================================
+
+
+def feature_audit(df, feature_columns, target_col="next_fantasy_points"):
+    numeric_df = df[feature_columns + [target_col]].copy()
+
+    feature_summary = []
+    for col in feature_columns:
+        if col not in numeric_df.columns:
+            continue
+        s = numeric_df[col]
+        feature_summary.append({
+            "feature": col,
+            "missing_rate": float(s.isna().mean()),
+            "mean": float(s.mean()) if not s.empty else np.nan,
+            "std": float(s.std()) if not s.empty else np.nan,
+            "target_corr": float(numeric_df[col].corr(numeric_df[target_col])) if s.notna().any() else np.nan,
+        })
+
+    feature_summary_df = pd.DataFrame(feature_summary)
+    feature_summary_df["abs_target_corr"] = feature_summary_df["target_corr"].abs()
+
+    highly_correlated_pairs = []
+    corr_matrix = numeric_df[feature_columns].corr().abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    for col_i in upper.columns:
+        for col_j in upper.index:
+            value = upper.loc[col_j, col_i]
+            if pd.notna(value) and value > 0.9:
+                highly_correlated_pairs.append((col_i, col_j, float(value)))
+
+    zero_variance = [
+        col for col in feature_columns
+        if col in numeric_df.columns and numeric_df[col].nunique(dropna=True) <= 1
+    ]
+
+    print()
+    print("=" * 60)
+    print("FEATURE ENGINEERING AUDIT")
+    print("=" * 60)
+    print("Top features by absolute correlation to target:")
+    print(
+        feature_summary_df
+        .sort_values("abs_target_corr", ascending=False)
+        [["feature", "missing_rate", "target_corr", "abs_target_corr", "std"]]
+        .head(20)
+        .to_string(index=False)
+    )
+
+    print()
+    print("Zero-variance or near-constant features:")
+    if zero_variance:
+        print(zero_variance)
+    else:
+        print("None")
+
+    print()
+    print("Highly correlated feature pairs (> 0.9):")
+    if highly_correlated_pairs:
+        for col_i, col_j, value in highly_correlated_pairs[:20]:
+            print(f"  {col_i} vs {col_j}: {value:.3f}")
+    else:
+        print("None")
+
+    return {
+        "feature_summary": feature_summary_df,
+        "zero_variance": zero_variance,
+        "highly_correlated_pairs": highly_correlated_pairs,
+    }
+
+
+for pos_name, pos_df in position_dfs.items():
+    feature_audit(pos_df, pos_feature_map[pos_name])
+
+# ============================================================
+# 9. CROSS-SEASON MODEL VALIDATION
 # ============================================================
 
 print()
@@ -760,7 +836,7 @@ for pos_name, params in best_final_params.items():
     print(f"{pos_name}: {params}")
 
 # ============================================================
-# 9. XGBoost  FEATURE IMPORTANCE
+# 10. XGBoost  FEATURE IMPORTANCE
 # ============================================================
 
 print()
@@ -790,7 +866,7 @@ for pos_name, model in position_models.items():
     print(importance_df.head(20).to_string(index=False))
 
 # ============================================================
-# 10. MODEL SUMMARY
+# 11. MODEL SUMMARY
 # ============================================================
 
 print()
@@ -839,7 +915,7 @@ print("Average MAE:", round(overall_best_mae, 2))
 print(avg_mae_by_model.round(3))
 
 # ============================================================
-# 11. GENERATE 2025 PROJECTIONS
+# 12. GENERATE 2025 PROJECTIONS
 # ============================================================
 
 print()
@@ -1004,7 +1080,7 @@ print(
     .to_string(index=False)
 )
 # ============================================================
-# 12. 2024 MODEL ERROR ANALYSIS
+# 13. 2024 MODEL ERROR ANALYSIS
 # ============================================================
 
 def evaluate_position_for_season(pos_name, model_df, feature_columns, xgb_params, prediction_season):
@@ -1044,7 +1120,7 @@ comparisons = {
 }
 
 # ============================================================
-# 13-15. ERROR TABLES (OVERPREDICTIONS / UNDERPREDICTIONS / LARGEST ABSOLUTE ERROR)
+# 14-16. ERROR TABLES (OVERPREDICTIONS / UNDERPREDICTIONS / LARGEST ABSOLUTE ERROR)
 # ============================================================
 
 def print_error_table(comparisons_by_position, sort_column, ascending, title):
