@@ -600,9 +600,6 @@ def feature_audit(df, feature_columns, target_col="next_fantasy_points"):
     }
 
 
-for pos_name, pos_df in position_dfs.items():
-    feature_audit(pos_df, pos_feature_map[pos_name])
-
 # ============================================================
 # 9. CROSS-SEASON MODEL VALIDATION
 # ============================================================
@@ -613,6 +610,9 @@ print("CROSS-SEASON MODEL VALIDATION")
 print("=" * 60)
 
 pos_feature_map = {"WR": wr_features,"RB": rb_features,"TE": te_features,"QB": qb_features}
+
+for pos_name, pos_df in position_dfs.items():
+    feature_audit(pos_df, pos_feature_map[pos_name])
 
 position_dfs = {"WR": wr_model_df,"RB": rb_model_df,"TE": te_model_df,"QB": qb_model_df}
 

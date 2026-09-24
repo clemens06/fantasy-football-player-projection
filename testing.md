@@ -944,3 +944,221 @@ Ridge model does already perform reasonably well, but experimenting with the alp
 Alpha value controls regularization strength. Lower = less regularized, higher = more regularized. 1.0 is the default that I have been using.
 Tested on 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0 but need to figure out how I am going to incorporate this without leaking because I found a leakage bug in the xgboost tuner that I need to fix
 Switched from random folds to chronological folds
+
+# Breakout Thresholds
+
+### Initial notes
+Created a "breakout threshold" some time ago to denote a significant uptick in a player's production from a fantasy perspective. Originally it was set to a constant of a 25 ppr point increase, but that was too low as well as inconsistent from position group to position group.
+Solution was to test thresholds by position similar to age feature
+
+### First Test
+Breakout thresholds by position:
+  WR: 93.22 PPR points
+  RB: 111.82 PPR points
+  TE: 70.83 PPR points
+  QB: 143.4 PPR points
+
+Notes: These thresholds seem really high at face value, I suspect a lot of it is due to turnover/role changes. In particular, the QB position sees an extremely high level of volatility based on role. As more work is done to improve on defining a specific player's role, I suppose that these scores will decrease some.
+
+# Feature Auditing
+
+### Initial notes
+Added a feature engineering audit to help answer some questions about which features are contributing meaningfully, which are too redundant/noisy, whether highly correlated stats are being overused, and whether a feature is too sparse or constant to be useful
+Includes calculations for missingness by feature, correlation to the target, zero-variance features, and highly correlated feature pairs
+
+### First Test
+FEATURE ENGINEERING AUDIT (WR)
+Top features by absolute correlation to target:
+                 feature  missing_rate  target_corr  abs_target_corr        std
+ previous_fantasy_points           0.0     0.746213         0.746213  86.937924
+         receiving_yards           0.0     0.742410         0.742410 402.600659
+              receptions           0.0     0.728731         0.728731  30.682773
+                 targets           0.0     0.727436         0.727436  45.839833
+ fantasy_points_per_game           0.0     0.721702         0.721702   5.454367
+receiving_yards_per_game           0.0     0.716445         0.716445  25.323994
+     receptions_per_game           0.0     0.706850         0.706850   1.905531
+        targets_per_game           0.0     0.702025         0.702025   2.807718
+            target_share           0.0     0.700710         0.700710   0.079981
+           receiving_tds           0.0     0.662195         0.662195   2.980783
+            prev_2yr_avg           0.0     0.491384         0.491384  86.897966
+                   games           0.0     0.455311         0.455311   4.764065
+        yards_per_target           0.0     0.266021         0.266021   3.285021
+              catch_rate           0.0     0.218259         0.218259   0.194956
+     yards_per_reception           0.0     0.217827         0.217827   5.069518
+           rushing_yards           0.0     0.184582         0.184582  30.093023
+                 carries           0.0     0.174763         0.174763   4.626071
+  rushing_yards_per_game           0.0     0.129727         0.129727   2.329186
+             rushing_tds           0.0     0.122031         0.122031   0.453620
+        carries_per_game           0.0     0.109651         0.109651   0.371616
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  receptions vs targets: 0.986
+  receiving_yards vs targets: 0.968
+  receiving_yards vs receptions: 0.967
+  targets_per_game vs targets: 0.925
+  targets_per_game vs receptions: 0.912
+  receptions_per_game vs targets: 0.916
+  receptions_per_game vs receptions: 0.936
+  receptions_per_game vs receiving_yards: 0.902
+  receptions_per_game vs targets_per_game: 0.976
+  receiving_yards_per_game vs receiving_yards: 0.934
+  receiving_yards_per_game vs targets_per_game: 0.949
+  receiving_yards_per_game vs receptions_per_game: 0.952
+  previous_fantasy_points vs targets: 0.972
+  previous_fantasy_points vs receptions: 0.977
+  previous_fantasy_points vs receiving_yards: 0.988
+  previous_fantasy_points vs receptions_per_game: 0.912
+  previous_fantasy_points vs receiving_yards_per_game: 0.920
+  fantasy_points_per_game vs receptions: 0.904
+  fantasy_points_per_game vs receiving_yards: 0.919
+  fantasy_points_per_game vs targets_per_game: 0.952
+
+FEATURE ENGINEERING AUDIT (RB)
+Top features by absolute correlation to target:
+                 feature  missing_rate  target_corr  abs_target_corr        std
+ fantasy_points_per_game           0.0     0.672952         0.672952   5.828577
+ previous_fantasy_points           0.0     0.671097         0.671097  89.852545
+           rushing_yards           0.0     0.643696         0.643696 384.842885
+                 carries           0.0     0.631823         0.631823  84.846118
+  rushing_yards_per_game           0.0     0.621984         0.621984  25.713885
+        carries_per_game           0.0     0.617457         0.617457   5.556518
+                 targets           0.0     0.567314         0.567314  25.765413
+            target_share           0.0     0.567197         0.567197   0.048689
+              receptions           0.0     0.566651         0.566651  20.252275
+        targets_per_game           0.0     0.560945         0.560945   1.664663
+         receiving_yards           0.0     0.559055         0.559055 163.182102
+             rushing_tds           0.0     0.557454         0.557454   3.614419
+     receptions_per_game           0.0     0.556828         0.556828   1.319052
+receiving_yards_per_game           0.0     0.542718         0.542718  10.851204
+    rushing_tds_per_game           0.0     0.523388         0.523388   0.259797
+                   games           0.0     0.414158         0.414158   4.680647
+           receiving_tds           0.0     0.378854         0.378854   1.370492
+            prev_2yr_avg           0.0     0.376548         0.376548  88.783852
+           breakout_flag           0.0     0.200685         0.200685   0.204647
+     yards_per_reception           0.0     0.188729         0.188729   3.369600
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  receptions vs targets: 0.993
+  receiving_yards vs targets: 0.962
+  receiving_yards vs receptions: 0.967
+  targets_per_game vs targets: 0.932
+  targets_per_game vs receptions: 0.925
+  targets_per_game vs receiving_yards: 0.901
+  receptions_per_game vs targets: 0.918
+  receptions_per_game vs receptions: 0.928
+  receptions_per_game vs receiving_yards: 0.902
+  receptions_per_game vs targets_per_game: 0.986
+  receiving_yards_per_game vs receiving_yards: 0.933
+  receiving_yards_per_game vs targets_per_game: 0.944
+  receiving_yards_per_game vs receptions_per_game: 0.954
+  yards_per_reception vs yards_per_target: 0.946
+  fantasy_points_per_game vs previous_fantasy_points: 0.932
+  age_sq vs age: 0.997
+  post_peak_decline vs age: 0.917
+  post_peak_decline vs age_sq: 0.940
+  target_share vs targets: 0.918
+  target_share vs receptions: 0.910
+
+FEATURE ENGINEERING AUDIT (TE)
+Top features by absolute correlation to target:
+                 feature  missing_rate  target_corr  abs_target_corr        std
+ previous_fantasy_points           0.0     0.731917         0.731917  61.235569
+         receiving_yards           0.0     0.724707         0.724707 267.128955
+ fantasy_points_per_game           0.0     0.713790         0.713790   3.836460
+                 targets           0.0     0.703879         0.703879  33.403081
+receiving_yards_per_game           0.0     0.702461         0.702461  16.948629
+              receptions           0.0     0.701103         0.701103  23.370433
+            target_share           0.0     0.696918         0.696918   0.059291
+        targets_per_game           0.0     0.689370         0.689370   2.055259
+     receptions_per_game           0.0     0.686303         0.686303   1.446293
+           receiving_tds           0.0     0.592985         0.592985   2.246336
+            prev_2yr_avg           0.0     0.524199         0.524199  59.361319
+                   games           0.0     0.505757         0.505757   4.680965
+           breakout_flag           0.0     0.243837         0.243837   0.204620
+     yards_per_reception           0.0     0.206687         0.206687   3.858128
+        yards_per_target           0.0     0.177001         0.177001   2.939340
+   fantasy_points_change           0.0     0.142263         0.142263  38.030531
+  rushing_yards_per_game           0.0     0.133790         0.133790   2.666766
+        carries_per_game           0.0     0.131879         0.131879   0.486109
+                 carries           0.0     0.131670         0.131670   7.280590
+             rushing_tds           0.0     0.129539         0.129539   0.541574
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  receptions vs targets: 0.990
+  receiving_yards vs targets: 0.971
+  receiving_yards vs receptions: 0.975
+  targets_per_game vs targets: 0.930
+  targets_per_game vs receptions: 0.918
+  targets_per_game vs receiving_yards: 0.903
+  receptions_per_game vs targets: 0.920
+  receptions_per_game vs receptions: 0.932
+  receptions_per_game vs receiving_yards: 0.911
+  receptions_per_game vs targets_per_game: 0.979
+  receiving_yards_per_game vs receiving_yards: 0.933
+  receiving_yards_per_game vs targets_per_game: 0.948
+  receiving_yards_per_game vs receptions_per_game: 0.960
+  previous_fantasy_points vs targets: 0.963
+  previous_fantasy_points vs receptions: 0.969
+  previous_fantasy_points vs receiving_yards: 0.974
+  fantasy_points_per_game vs receiving_yards: 0.905
+  fantasy_points_per_game vs targets_per_game: 0.936
+  fantasy_points_per_game vs receptions_per_game: 0.951
+  fantasy_points_per_game vs receiving_yards_per_game: 0.961
+
+FEATURE ENGINEERING AUDIT (QB)
+Top features by absolute correlation to target:
+                     feature  missing_rate  target_corr  abs_target_corr         std
+     previous_fantasy_points           0.0     0.702357         0.702357  121.522978
+                 passing_tds           0.0     0.662981         0.662981   11.871780
+               passing_yards           0.0     0.651751         0.651751 1653.802768
+         passing_completions           0.0     0.635853         0.635853  146.009655
+            passing_attempts           0.0     0.631096         0.631096  220.870191
+     fantasy_points_per_game           0.0     0.616340         0.616340    6.973386
+        passing_tds_per_game           0.0     0.566411         0.566411    0.706977
+                     carries           0.0     0.566159         0.566159   33.208214
+      passing_yards_per_game           0.0     0.534763         0.534763   92.187439
+               rushing_yards           0.0     0.498820         0.498820  193.171931
+passing_completions_per_game           0.0     0.498804         0.498804    8.066650
+                prev_2yr_avg           0.0     0.496450         0.496450  119.487597
+   passing_attempts_per_game           0.0     0.471494         0.471494   12.228122
+                 rushing_tds           0.0     0.465629         0.465629    2.327522
+       passing_interceptions           0.0     0.441057         0.441057    5.189292
+            carries_per_game           0.0     0.331087         0.331087    2.211942
+        rushing_tds_per_game           0.0     0.327175         0.327175    0.188117
+      rushing_yards_per_game           0.0     0.318058         0.318058   14.679825
+                   age_curve           0.0    -0.198938         0.198938    0.221582
+             prime_age_bonus           0.0    -0.117533         0.117533    0.429950
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  passing_tds vs passing_yards: 0.948
+  passing_attempts vs passing_yards: 0.989
+  passing_attempts vs passing_tds: 0.918
+  passing_completions vs passing_yards: 0.992
+  passing_completions vs passing_tds: 0.930
+  passing_completions vs passing_attempts: 0.997
+  passing_attempts_per_game vs passing_yards_per_game: 0.967
+  passing_completions_per_game vs passing_yards_per_game: 0.976
+  passing_completions_per_game vs passing_attempts_per_game: 0.989
+  previous_fantasy_points vs passing_yards: 0.964
+  previous_fantasy_points vs passing_tds: 0.961
+  previous_fantasy_points vs passing_attempts: 0.947
+  previous_fantasy_points vs passing_completions: 0.952
+  fantasy_points_per_game vs passing_yards_per_game: 0.905
+  fantasy_points_per_game vs passing_tds_per_game: 0.907
+  rushing_yards vs carries: 0.957
+  age_sq vs age: 0.996
+  post_peak_decline vs age_sq: 0.931
+
+  Notes: No features fell into the zero-variance or near-constant categories for any positions. Lots of high correlations as far as feature pairs though, especially when it comes to volume stats. Going to cut down on some of these, for example passing attempts and passing completions, in the hopes that it reduces noise without making the model weaker.
