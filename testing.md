@@ -1165,7 +1165,7 @@ Highly correlated feature pairs (> 0.9):
 
   ### Post Audit Pass 1
 
-FEATURE ENGINEERING AUDIT
+FEATURE ENGINEERING AUDIT (WR)
 Top features by absolute correlation to target:
                  feature  missing_rate  target_corr  abs_target_corr       std
  previous_fantasy_points           0.0     0.746213         0.746213 86.937924
@@ -1203,7 +1203,7 @@ Highly correlated feature pairs (> 0.9):
   target_share vs receiving_yards_per_game: 0.934
   target_share vs fantasy_points_per_game: 0.937
 
-FEATURE ENGINEERING AUDIT
+FEATURE ENGINEERING AUDIT (RB)
 Top features by absolute correlation to target:
                  feature  missing_rate  target_corr  abs_target_corr       std
  fantasy_points_per_game           0.0     0.672952         0.672952  5.828577
@@ -1237,7 +1237,7 @@ Highly correlated feature pairs (> 0.9):
   target_share vs receiving_yards_per_game: 0.927
   carries_per_game vs rushing_yards_per_game: 0.969
 
-FEATURE ENGINEERING AUDIT
+FEATURE ENGINEERING AUDIT (TE)
 Top features by absolute correlation to target:
                  feature  missing_rate  target_corr  abs_target_corr       std
  previous_fantasy_points           0.0     0.731917         0.731917 61.235569
@@ -1276,7 +1276,7 @@ Highly correlated feature pairs (> 0.9):
   carries_per_game vs rushing_yards_per_game: 0.988
   carries_per_game vs rushing_tds_per_game: 0.940
 
-FEATURE ENGINEERING AUDIT
+FEATURE ENGINEERING AUDIT (QB)
 Top features by absolute correlation to target:
                        feature  missing_rate  target_corr  abs_target_corr        std
        previous_fantasy_points           0.0     0.702357         0.702357 121.522978
@@ -1297,3 +1297,94 @@ None
 Highly correlated feature pairs (> 0.9):
   fantasy_points_per_game vs passing_yards_per_game: 0.905
   fantasy_points_per_game vs passing_tds_per_game: 0.907
+
+### Post Audit Pass 2
+
+FEATURE ENGINEERING AUDIT (WR)
+Top features by absolute correlation to target:
+                 feature  missing_rate  target_corr  abs_target_corr       std
+ previous_fantasy_points           0.0     0.746213         0.746213 86.937924
+ fantasy_points_per_game           0.0     0.721702         0.721702  5.454367
+receiving_yards_per_game           0.0     0.716445         0.716445 25.323994
+            target_share           0.0     0.700710         0.700710  0.079981
+           receiving_tds           0.0     0.662195         0.662195  2.980783
+            prev_2yr_avg           0.0     0.491384         0.491384 86.897966
+   fantasy_points_change           0.0     0.102947         0.102947 50.009053
+           breakout_flag           0.0     0.073853         0.073853  0.161861
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  target_share vs receiving_yards_per_game: 0.934
+  previous_fantasy_points vs receiving_yards_per_game: 0.920
+  fantasy_points_per_game vs receiving_yards_per_game: 0.979
+  fantasy_points_per_game vs target_share: 0.937
+  fantasy_points_per_game vs previous_fantasy_points: 0.932
+
+FEATURE ENGINEERING AUDIT (RB)
+Top features by absolute correlation to target:
+                feature  missing_rate  target_corr  abs_target_corr       std
+fantasy_points_per_game           0.0     0.672952         0.672952  5.828577
+previous_fantasy_points           0.0     0.671097         0.671097 89.852545
+ rushing_yards_per_game           0.0     0.621984         0.621984 25.713885
+       carries_per_game           0.0     0.617457         0.617457  5.556518
+           target_share           0.0     0.567197         0.567197  0.048689
+          receiving_tds           0.0     0.378854         0.378854  1.370492
+           prev_2yr_avg           0.0     0.376548         0.376548 88.783852
+          breakout_flag           0.0     0.200685         0.200685  0.204647
+  fantasy_points_change           0.0     0.095012         0.095012 60.028942
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  carries_per_game vs rushing_yards_per_game: 0.969
+  fantasy_points_per_game vs previous_fantasy_points: 0.932
+
+FEATURE ENGINEERING AUDIT (TE)
+Top features by absolute correlation to target:
+                 feature  missing_rate  target_corr  abs_target_corr       std
+ previous_fantasy_points           0.0     0.731917         0.731917 61.235569
+ fantasy_points_per_game           0.0     0.713790         0.713790  3.836460
+receiving_yards_per_game           0.0     0.702461         0.702461 16.948629
+            target_share           0.0     0.696918         0.696918  0.059291
+        targets_per_game           0.0     0.689370         0.689370  2.055259
+           receiving_tds           0.0     0.592985         0.592985  2.246336
+            prev_2yr_avg           0.0     0.524199         0.524199 59.361319
+           breakout_flag           0.0     0.243837         0.243837  0.204620
+   fantasy_points_change           0.0     0.142263         0.142263 38.030531
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  targets_per_game vs receiving_yards_per_game: 0.948
+  target_share vs receiving_yards_per_game: 0.933
+  target_share vs targets_per_game: 0.976
+  fantasy_points_per_game vs receiving_yards_per_game: 0.961
+  fantasy_points_per_game vs targets_per_game: 0.936
+  fantasy_points_per_game vs target_share: 0.921
+  fantasy_points_per_game vs previous_fantasy_points: 0.930
+
+FEATURE ENGINEERING AUDIT (QB)
+Top features by absolute correlation to target:
+                feature  missing_rate  target_corr  abs_target_corr        std
+previous_fantasy_points           0.0     0.702357         0.702357 121.522978
+fantasy_points_per_game           0.0     0.616340         0.616340   6.973386
+   passing_tds_per_game           0.0     0.566411         0.566411   0.706977
+ passing_yards_per_game           0.0     0.534763         0.534763  92.187439
+           prev_2yr_avg           0.0     0.496450         0.496450 119.487597
+       carries_per_game           0.0     0.331087         0.331087   2.211942
+ rushing_yards_per_game           0.0     0.318058         0.318058  14.679825
+  fantasy_points_change           0.0     0.096631         0.096631  79.705453
+          breakout_flag           0.0     0.096281         0.096281   0.217961
+
+Zero-variance or near-constant features:
+None
+
+Highly correlated feature pairs (> 0.9):
+  fantasy_points_per_game vs passing_yards_per_game: 0.905
+  fantasy_points_per_game vs passing_tds_per_game: 0.907
+
+Notes: This is clearly the cleanest result yet, with the lowest redundancy while maintaining good predictiveness and no over-parameterizing. This feature list will be used for the time being although more changes could be made in the future.
