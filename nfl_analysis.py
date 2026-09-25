@@ -339,61 +339,39 @@ for pos_name, threshold in breakout_thresholds.items():
 # 7. DEFINE FEATURES
 # ============================================================
 
-# Lean feature sets kept for the actual modeling stage.
-# These focus on the strongest, least redundant signals: prior production,
-# per-game production, efficiency, and trend/breakout behavior.
+# Final pruning pass: keep one representative volume metric per cluster and avoid
+# carrying overlapping receiving/volume variables together. Emphasis stays on
+# previous production, per-game production, and trend/breakout behavior.
 wr_features = [
-    "targets_per_game",
-    "receptions_per_game",
     "receiving_yards_per_game",
     "receiving_tds",
-    "previous_fantasy_points",
-    "catch_rate",
-    "yards_per_target",
-    "yards_per_reception",
-    "fantasy_points_per_game",
     "target_share",
-    "rushing_yards_per_game",
-    "rushing_tds_per_game",
-    "carries_per_game",
+    "previous_fantasy_points",
+    "fantasy_points_per_game",
     "prev_2yr_avg",
     "fantasy_points_change",
     "breakout_flag",
 ]
 
 rb_features = [
-    "targets_per_game",
-    "receptions_per_game",
-    "receiving_yards_per_game",
-    "receiving_tds",
-    "previous_fantasy_points",
-    "catch_rate",
-    "yards_per_target",
-    "yards_per_reception",
-    "fantasy_points_per_game",
-    "target_share",
     "rushing_yards_per_game",
-    "rushing_tds_per_game",
     "carries_per_game",
+    "receiving_tds",
+    "target_share",
+    "previous_fantasy_points",
+    "fantasy_points_per_game",
     "prev_2yr_avg",
     "fantasy_points_change",
     "breakout_flag",
 ]
 
 te_features = [
-    "targets_per_game",
-    "receptions_per_game",
     "receiving_yards_per_game",
+    "targets_per_game",
     "receiving_tds",
-    "previous_fantasy_points",
-    "catch_rate",
-    "yards_per_target",
-    "yards_per_reception",
-    "fantasy_points_per_game",
     "target_share",
-    "rushing_yards_per_game",
-    "rushing_tds_per_game",
-    "carries_per_game",
+    "previous_fantasy_points",
+    "fantasy_points_per_game",
     "prev_2yr_avg",
     "fantasy_points_change",
     "breakout_flag",
@@ -402,10 +380,8 @@ te_features = [
 qb_features = [
     "passing_yards_per_game",
     "passing_tds_per_game",
-    "passing_interceptions_per_game",
     "carries_per_game",
     "rushing_yards_per_game",
-    "rushing_tds_per_game",
     "previous_fantasy_points",
     "fantasy_points_per_game",
     "prev_2yr_avg",
